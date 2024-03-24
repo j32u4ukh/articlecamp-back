@@ -1,41 +1,42 @@
 const Router = require('express')
 const router = Router()
-const { Article1 } = require('../../services')
-const { ReturnCode, ErrorCode } = require('../../utils/codes.js')
+const Article = require('../services/article.js')
+const { ReturnCode, ErrorCode } = require('../utils/codes.js')
 
 router.get('/', (req, res) => {
   const keyword = req.query.keyword
   if (keyword) {
-    Article1.getByKeyword({ keyword }).then((articles) => {
+    Article.getByKeyword({ keyword }).then((articles) => {
       res.json(articles)
     })
   } else {
-    Article1.getList().then((articles) => {
+    Article.getList().then((articles) => {
       res.json(articles)
     })
   }
 })
 
-router.post('/create', (req, res) => {
-  console.log(`create: ${JSON.stringify(req.body)}`)
-  const author = req.body.author
-  if (author === '') {
+router.post('/', (req, res) => {
+  const BODY = req.body
+  console.log(`create: ${JSON.stringify(BODY)}`)
+  const author = BODY.author
+  if (author === undefined || author === '') {
     return res.status(ReturnCode.BadRequest).json({
       code: ErrorCode.ParamError,
       msg: 'author 為必要參數',
     })
   }
-  const title = req.body.title
-  if (title === '') {
+  const title = BODY.title
+  if (title === undefined || title === '') {
     return res.status(ReturnCode.BadRequest).json({
       code: ErrorCode.ParamError,
       msg: 'title 為必要參數',
     })
   }
-  Article1.add({
+  Article.add({
     author,
     title,
-    content: req.body.content,
+    content: BODY.content,
   })
     .then((result) => {
       res.json(result)
@@ -46,39 +47,39 @@ router.post('/create', (req, res) => {
 })
 
 router.get('/:id', (req, res) => {
-  Article1.get({
+  Article.get({
     id: Number(req.params.id),
   })
     .then((result) => {
       res.json(result)
     })
-    .catch(({ ret, err }) => {
-      res.status(ret).json(err)
+    .catch((error) => {
+      res.status(ErrorCode.getReturnCode(error.code)).json(error)
     })
 })
 
 router.put('/:id', (req, res) => {
-  Article1.update({
+  Article.update({
     id: Number(req.params.id),
     article: req.body,
   })
     .then((result) => {
       res.json(result)
     })
-    .catch(({ ret, err }) => {
-      res.status(ret).json(err)
+    .catch((error) => {
+      res.status(ErrorCode.getReturnCode(error.code)).json(error)
     })
 })
 
 router.delete('/:id', (req, res) => {
-  Article1.delete({
+  Article.delete({
     id: Number(req.params.id),
   })
     .then((result) => {
       res.json(result)
     })
-    .catch(({ ret, err }) => {
-      res.status(ret).json(err)
+    .catch((error) => {
+      res.status(ErrorCode.getReturnCode(error.code)).json(error)
     })
 })
 

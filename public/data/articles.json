@@ -1,47 +1,50 @@
 [
     {
         "id": 1,
-        "userId": 1,
+        "author": "Author1",
         "title": "Article1",
-        "category": 1,
         "content": "This is content",
         "createAt": 1705819929,
         "updateAt": 1705819929
     },
     {
         "id": 2,
-        "userId": 1,
+        "author": "Author1",
         "title": "Article2",
-        "category": 1,
         "content": "This is content",
         "createAt": 1705820000,
         "updateAt": 1705820000
     },
     {
         "id": 3,
-        "userId": 1,
+        "author": "Author1",
         "title": "Article3",
-        "category": 1,
         "content": "This is content",
         "createAt": 1705830000,
         "updateAt": 1705830000
     },
     {
         "id": 4,
-        "userId": 2,
+        "author": "Author1",
         "title": "Article4",
-        "category": 1,
         "content": "This is content",
         "createAt": 1705840000,
         "updateAt": 1705840000
     },
     {
         "id": 5,
-        "userId": 3,
+        "author": "Author1",
         "title": "Article5",
-        "category": 1,
         "content": "This is content",
         "createAt": 1705850000,
         "updateAt": 1705850000
+    },
+    {
+        "author": "Yin",
+        "title": "title36",
+        "content": "This is content 08:26",
+        "id": 6,
+        "createAt": 1711289939,
+        "updateAt": 1711289939
     }
 ]

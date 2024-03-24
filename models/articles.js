@@ -2,15 +2,12 @@ const Model = require('./base')
 const { getTimestamp } = require('../utils')
 
 class ArticleModel extends Model {
-  constructor({ version }) {
-    super({ file_path: `./public/data/v${version}/articles.json` })
-    this.version = version
+  constructor() {
+    super({ file_path: `./public/data/articles.json` })
     this.articles = []
     this.next_id = 0
     this.n_article = 0
-
-    // TODO: 根據 version 不同，設置不同的必要欄位
-    this.requiredFields = ['userId', 'title', 'content']
+    this.requiredFields = ['author', 'title', 'content']
 
     this.read()
       .then((articles) => {
@@ -97,8 +94,10 @@ class ArticleModel extends Model {
         })
     })
   }
+  validate(data) {
+    return super.validate(data, this.requiredFields)
+  }
 }
 
-const Article1 = new ArticleModel({ version: 1 })
-const Article2 = new ArticleModel({ version: 2 })
-module.exports = { Article1, Article2 }
+const Article = new ArticleModel()
+module.exports = Article
