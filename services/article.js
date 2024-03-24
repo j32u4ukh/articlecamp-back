@@ -13,6 +13,7 @@ class ArticleService {
       } else {
         ArticleModel.add(article)
           .then((article) => {
+            delete article.createAt
             resolve(article)
           })
           .catch((err) => {
@@ -27,13 +28,21 @@ class ArticleService {
   }
   getList(filterFunc) {
     return new Promise((resolve, reject) => {
-      resolve(ArticleModel.getList(filterFunc))
+      let articles = ArticleModel.getList(filterFunc)
+      articles = articles.map((article) => {
+        delete article.createAt
+        return article
+      })
+      resolve(articles)
     })
   }
   getByKeyword(keyword) {
     return new Promise((resolve, reject) => {
       keyword = keyword.toUpperCase()
       this.getList((article) => {
+        if (article.author.toUpperCase().includes(keyword)) {
+          return true
+        }
         if (article.title.toUpperCase().includes(keyword)) {
           return true
         }
@@ -56,7 +65,10 @@ class ArticleService {
         })
         return
       }
-      resolve(result.data)
+
+      let article = result.data
+      delete article.createAt
+      resolve(article)
     })
   }
   update({ id, article }) {

@@ -11,6 +11,7 @@ class ArticleModel extends Model {
 
     this.read()
       .then((articles) => {
+        articles = this.sortByTime(articles, 'updateAt')
         articles.forEach((article) => {
           this.next_id = this.next_id > article.id ? this.next_id : article.id
           this.articles.push(article)
@@ -30,6 +31,7 @@ class ArticleModel extends Model {
       article.createAt = timestamp
       article.updateAt = timestamp
       this.articles.push(article)
+      this.articles = this.sortByTime(this.articles, 'updateAt')
 
       // 將文章列表寫入檔案中
       this.write(this.articles)
@@ -51,7 +53,7 @@ class ArticleModel extends Model {
   }
   // 根據文章 id 取得指定文章
   get(id) {
-    return super.get({ id: id, datas: this.articles, n_data: this.n_article })
+    return super.get({ id: id, datas: this.articles })
   }
   getList(func) {
     if (func) {
@@ -67,11 +69,12 @@ class ArticleModel extends Model {
     return new Promise((resolve, reject) => {
       article.updateAt = getTimestamp()
       this.articles[index] = article
+      this.articles = this.sortByTime(this.articles, 'updateAt')
 
       // 將文章列表寫入檔案中
       this.write(this.articles)
-        .then((articles) => {
-          resolve(articles[index])
+        .then(() => {
+          resolve(article)
         })
         .catch((error) => {
           reject(error)
