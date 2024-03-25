@@ -69,15 +69,11 @@ class UserService {
           msg: `密碼不正確`,
         })
       }
-      try {
-        delete user.password
-        delete user.image
-        delete user.createAt
-        const token = await this.generateToken(user)
-        resolve(token)
-      } catch (error) {
-        reject(error)
-      }
+
+      delete user.password
+      delete user.image
+      delete user.createAt
+      resolve(user)
     })
   }
   add(user) {

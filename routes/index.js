@@ -1,7 +1,7 @@
 // 引用 Express 與 Express 路由器
 const Router = require('express')
 const { ReturnCode, ErrorCode } = require('../utils/codes')
-const { User } = require('../services')
+const { User, Auth } = require('../services')
 
 // 建立根路由
 const router = Router()
@@ -65,7 +65,7 @@ v2.post('/login', (req, res) => {
       msg: '缺少必要參數 password',
     })
   }
-  User.login({ email, password })
+  Auth.login({ email, password })
     .then((token) => {
       res.json({
         token,
