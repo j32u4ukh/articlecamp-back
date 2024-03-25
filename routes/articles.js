@@ -1,35 +1,34 @@
 const { Router } = require('express')
-const { Article, Category, Message } = require('../services')
+const { Article, Auth, Category, Message } = require('../services')
 const { ReturnCode, ErrorCode } = require('../utils/codes')
 
 // 建立路由物件
 const router = Router()
 
 // 取得文章列表
-router.get('/', (req, res) => {
-  const token = req.headers.token
-  if (token === undefined || token === '') {
-    return res.status(ReturnCode.BadRequest).json({
-      code: ErrorCode.MissingParameters,
-      msg: '缺少必要參數 token',
-    })
-  }
-  // 暫時使用 userId 作為 token
-  const userId = Number(token)
-  const keyword = req.query.keyword
-  const offset = req.query.offset
-  const size = req.query.size
-  const summary = true
-  if (keyword) {
-    Article.getByKeyword(userId, offset, size, summary, keyword).then(
-      (articles) => {
+router.get('/', async (req, res) => {
+  try {
+    const authData = await Auth.verifyToken(req)
+
+    // 從 JWT 中取得 userId
+    const userId = authData.user.id
+    const keyword = req.query.keyword
+    const offset = req.query.offset
+    const size = req.query.size
+    const summary = true
+    if (keyword) {
+      Article.getByKeyword(userId, offset, size, summary, keyword).then(
+        (articles) => {
+          res.json(articles)
+        }
+      )
+    } else {
+      Article.getBatchDatas(userId, offset, size, summary).then((articles) => {
         res.json(articles)
-      }
-    )
-  } else {
-    Article.getBatchDatas(userId, offset, size, summary).then((articles) => {
-      res.json(articles)
-    })
+      })
+    }
+  } catch (error) {
+    res.status(ErrorCode.getReturnCode(error.code)).json(error)
   }
 })
 

@@ -63,6 +63,18 @@ class AuthService {
               msg: 'jwt 驗證失敗',
             })
           } else {
+            /*
+            authData: {
+                "user": {
+                    "id": 1,
+                    "name": "Henry",
+                    "email": "henry@articlecamp.com",
+                    "updateAt": 1705819929
+                },
+                "iat": 1711380760,
+                "exp": 1711384360
+            }
+            */
             return resolve(authData)
           }
         })
