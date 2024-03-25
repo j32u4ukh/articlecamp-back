@@ -29,7 +29,7 @@ class UserModel extends Model {
       const timestamp = getTimestamp()
       user.createAt = timestamp
       user.updateAt = timestamp
-      this.user.push(user)
+      this.users.push(user)
 
       // 將用戶列表寫入檔案中
       this.write(this.users)
@@ -48,6 +48,11 @@ class UserModel extends Model {
   // 根據用戶 id 取得指定用戶
   get(id) {
     return super.get({ id: id, datas: this.users })
+  }
+  getByEmail(email) {
+    return this.users.find((user) => {
+      return user.email === email
+    })
   }
   getList(func) {
     if (func) {

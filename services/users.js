@@ -54,13 +54,19 @@ class UserService {
     return new Promise((resolve, reject) => {
       const isValid = UserModel.validate(user, UserModel.requiredFields)
       if (!isValid) {
-        reject({
+        return reject({
           code: ErrorCode.MissingParameters,
           msg: `缺少必要參數, requiredFields: ${JSON.stringify(
             UserModel.requiredFields
           )}`,
         })
-        return
+      }
+      const temp = UserModel.getByEmail(user.email)
+      if (temp !== undefined) {
+        return reject({
+          code: ErrorCode.Conflict,
+          msg: `此信箱(${user.email})已註冊過`,
+        })
       }
       UserModel.add(user)
         .then((result) => {
