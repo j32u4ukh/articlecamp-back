@@ -17,11 +17,6 @@ v2.use('/users', users)
 
 // 註冊帳號
 v2.post('/register', (req, res) => {
-  /*{
-        name: "Author Name",
-        email: "This is title",
-        password: "This is content",
-    }*/
   const BODY = req.body
   const name = BODY.name
   if (name === undefined || name === '') {
@@ -47,6 +42,34 @@ v2.post('/register', (req, res) => {
   User.add({ name, email, password })
     .then((user) => {
       res.json(user)
+    })
+    .catch((error) => {
+      res.status(ErrorCode.getReturnCode(error.code)).json(error)
+    })
+})
+
+// 帳號登入
+v2.post('/login', (req, res) => {
+  const BODY = req.body
+  const email = BODY.email
+  if (email === undefined || email === '') {
+    return res.status(ReturnCode.BadRequest).json({
+      code: ErrorCode.MissingParameters,
+      msg: '缺少必要參數 email',
+    })
+  }
+  const password = BODY.password
+  if (password === undefined || password === '') {
+    return res.status(ReturnCode.BadRequest).json({
+      code: ErrorCode.MissingParameters,
+      msg: '缺少必要參數 password',
+    })
+  }
+  User.login({ email, password })
+    .then((token) => {
+      res.json({
+        token,
+      })
     })
     .catch((error) => {
       res.status(ErrorCode.getReturnCode(error.code)).json(error)

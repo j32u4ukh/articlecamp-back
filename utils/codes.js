@@ -15,6 +15,7 @@ const ErrorCode = {
   MissingParameters: 40001,
   InvalidParameters: 40002,
   Unauthorized: 40100,
+  Forbidden: 40300,
   NotFound: 40400,
   NotRelationship: 40401,
   Conflict: 40900,
