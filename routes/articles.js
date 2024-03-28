@@ -8,7 +8,6 @@ const router = Router()
 // 取得文章列表
 router.get('/', async (req, res) => {
   try {
-    // const authData = await Auth.verifyToken(req)
     const authData = req.authData
 
     // 從 JWT 中取得 userId
