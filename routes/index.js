@@ -9,10 +9,11 @@ const router = Router()
 // 準備引入路由模組
 const articles = require('./articles')
 const users = require('./users')
+const authHandler = require('../middlewares/auth')
 
 // API-v2
 const v2 = Router()
-v2.use('/articles', articles)
+v2.use('/articles', authHandler, articles)
 v2.use('/users', users)
 
 // 註冊帳號

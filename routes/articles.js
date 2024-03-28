@@ -8,7 +8,8 @@ const router = Router()
 // 取得文章列表
 router.get('/', async (req, res) => {
   try {
-    const authData = await Auth.verifyToken(req)
+    // const authData = await Auth.verifyToken(req)
+    const authData = req.authData
 
     // 從 JWT 中取得 userId
     const userId = authData.user.id
@@ -34,15 +35,11 @@ router.get('/', async (req, res) => {
 
 // 新增文章
 router.post('/', (req, res) => {
-  const token = req.headers.token
-  if (token === undefined) {
-    return res.status(ReturnCode.BadRequest).json({
-      code: ErrorCode.MissingParameters,
-      msg: '缺少必要參數 token',
-    })
-  }
-  // 暫時使用 userId 作為 token
-  const userId = Number(token)
+  const authData = req.authData
+
+  // 從 JWT 中取得 userId
+  const userId = authData.user.id
+
   const BODY = req.body
   const title = BODY.title
   if (title === undefined || title === '') {
@@ -85,13 +82,11 @@ router.get('/:id/messages', (req, res) => {
 })
 
 router.post('/:id/messages', (req, res) => {
-  const token = req.headers.token
-  if (token === undefined) {
-    return res.status(ReturnCode.BadRequest).json({
-      code: ErrorCode.MissingParameters,
-      msg: '缺少必要參數 token',
-    })
-  }
+  const authData = req.authData
+
+  // 從 JWT 中取得 userId
+  const userId = authData.user.id
+
   const articleId = Number(req.params.id)
   const message = req.body
   if (message.content === undefined || message.content === '') {
@@ -101,8 +96,6 @@ router.post('/:id/messages', (req, res) => {
     })
   }
 
-  // TODO: 從 token 取得用戶 ID
-  const userId = Number(token)
   Message.add(userId, articleId, message)
     .then((result) => {
       res.json(result)
@@ -126,14 +119,10 @@ router.get('/:id', (req, res) => {
 })
 
 router.put('/:id', (req, res) => {
-  const token = req.headers.token
-  if (token === undefined) {
-    return res.status(ReturnCode.BadRequest).json({
-      code: ErrorCode.MissingParameters,
-      msg: '缺少必要參數 token',
-    })
-  }
-  const userId = Number(token)
+  const authData = req.authData
+
+  // 從 JWT 中取得 userId
+  const userId = authData.user.id
   const id = Number(req.params.id)
   Article.update({
     id,
