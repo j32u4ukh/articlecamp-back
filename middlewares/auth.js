@@ -1,4 +1,5 @@
 const { Auth } = require('../services')
+const { ErrorCode } = require('../utils/codes')
 
 module.exports = (req, res, next) => {
   Auth.verifyToken(req)
@@ -8,6 +9,7 @@ module.exports = (req, res, next) => {
     })
     .catch((error) => {
       console.log(error)
-      return res.location('/login').json(error)
+      error.location = '/login'
+      return res.status(ErrorCode.getReturnCode(error.code)).json(error)
     })
 }
