@@ -81,22 +81,6 @@ class ArticleModel extends Model {
         })
     })
   }
-  // 根據文章 id 刪除文章
-  delete(index) {
-    return new Promise((resolve, reject) => {
-      // 根據索引值移除文章
-      this.articles.splice(index, 1)
-
-      // 將文章列表寫入檔案中
-      this.write(this.articles)
-        .then(() => {
-          resolve()
-        })
-        .catch((error) => {
-          reject(error)
-        })
-    })
-  }
   validate(data) {
     return super.validate(data, this.requiredFields)
   }

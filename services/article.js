@@ -2,6 +2,32 @@ const ArticleModel = require('../models/articles.js')
 const { ErrorCode } = require('../utils/codes.js')
 
 class ArticleService {
+  getList(filterFunc) {
+    return new Promise((resolve, reject) => {
+      let articles = ArticleModel.getList(filterFunc)
+      articles = articles.map((article) => {
+        delete article.createAt
+        return article
+      })
+      resolve(articles)
+    })
+  }
+  get({ id }) {
+    return new Promise((resolve, reject) => {
+      const result = ArticleModel.get(id)
+      if (result.index === -1) {
+        reject({
+          code: ErrorCode.NotFound,
+          msg: `沒有 id 為 ${id} 的文章`,
+        })
+        return
+      }
+
+      let article = result.data
+      delete article.createAt
+      resolve(article)
+    })
+  }
   add(article) {
     return new Promise((resolve, reject) => {
       const isValid = ArticleModel.validate(article)
@@ -26,61 +52,8 @@ class ArticleService {
       }
     })
   }
-  getList(filterFunc) {
-    return new Promise((resolve, reject) => {
-      let articles = ArticleModel.getList(filterFunc)
-      articles = articles.map((article) => {
-        delete article.createAt
-        return article
-      })
-      resolve(articles)
-    })
-  }
-  getByKeyword(keyword) {
-    return new Promise((resolve, reject) => {
-      keyword = keyword.toUpperCase()
-      this.getList((article) => {
-        if (article.author.toUpperCase().includes(keyword)) {
-          return true
-        }
-        if (article.title.toUpperCase().includes(keyword)) {
-          return true
-        }
-        if (article.content.toUpperCase().includes(keyword)) {
-          return true
-        }
-        return false
-      }).then((articles) => {
-        resolve(articles)
-      })
-    })
-  }
-  get({ id }) {
-    return new Promise((resolve, reject) => {
-      const result = ArticleModel.get(id)
-      if (result.index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的文章`,
-        })
-        return
-      }
-
-      let article = result.data
-      delete article.createAt
-      resolve(article)
-    })
-  }
   update({ id, article }) {
     return new Promise((resolve, reject) => {
-      const isValid = ArticleModel.validate(article)
-      if (!isValid) {
-        reject({
-          code: ErrorCode.MissingParameters,
-          msg: '缺少必要參數',
-        })
-        return
-      }
       const { index, data } = ArticleModel.get(id)
       if (index === -1) {
         reject({
@@ -90,7 +63,16 @@ class ArticleService {
         return
       }
       article.id = id
+      article.author = data.author
       article.createAt = data.createAt
+      const isValid = ArticleModel.validate(article)
+      if (!isValid) {
+        reject({
+          code: ErrorCode.MissingParameters,
+          msg: '缺少必要參數',
+        })
+        return
+      }
       ArticleModel.update(index, article)
         .then((result) => {
           resolve(result)
@@ -100,32 +82,6 @@ class ArticleService {
           reject({
             code: ErrorCode.UpdateError,
             msg: '更新數據時發生錯誤',
-          })
-        })
-    })
-  }
-  delete({ id }) {
-    return new Promise((resolve, reject) => {
-      const { index, _ } = ArticleModel.get(id)
-      if (index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的文章`,
-        })
-        return
-      }
-      ArticleModel.delete(id)
-        .then(() => {
-          resolve({
-            code: ErrorCode.Ok,
-            msg: 'OK',
-          })
-        })
-        .catch((err) => {
-          console.error(err)
-          reject({
-            code: ErrorCode.DeleteError,
-            msg: '刪除數據時發生錯誤',
           })
         })
     })
