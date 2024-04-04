@@ -137,41 +137,24 @@ class UserService {
       }
     })
   }
-  // TODO: 串接資料庫
   // 根據 id 更新用戶數據
   update({ id, user }) {
     return new Promise((resolve, reject) => {
-      const { index, data } = UserModel.get(id)
-      if (index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的用戶`,
+      User.update(user, {
+        where: {
+          id,
+        }
+      }).then(()=>{
+        return resolve({
+          msg: "OK",
         })
-        return
-      }
-      const isValid = UserModel.validate(user, UserModel.requiredFields)
-      if (!isValid) {
-        reject({
-          code: ErrorCode.MissingParameters,
-          msg: `缺少必要參數, requiredFields: ${JSON.stringify(
-            UserModel.requiredFields
-          )}`,
+      }).catch((error)=>{
+        console.log(`讀取用戶數據時發生錯誤, error: ${error}`)
+        return reject({
+          code: ErrorCode.UpdateError,
+          msg: `更新用戶數據時發生錯誤`,
         })
-        return
-      }
-      user.id = id
-      user.createAt = data.createAt
-      UserModel.update(index, user)
-        .then((result) => {
-          resolve(result)
-        })
-        .catch((err) => {
-          console.error(err)
-          reject({
-            code: ErrorCode.UpdateError,
-            msg: '更新數據時發生錯誤',
-          })
-        })
+      })
     })
   }
   // 每個用戶有自己的資料夾，當中則是專屬各個使用者的圖片資源

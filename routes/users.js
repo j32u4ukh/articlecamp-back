@@ -94,16 +94,16 @@ router.get('/profile', authHandler, (req, res) => {
 })
 
 // 設定的 image 表示提交的表單中，圖片上傳的欄位名稱是 image (要配合表單傳送過來時，檔案對應的 name)
-router.patch('/profile', upload.single('image'), async (req, res) => {
-  const token = req.headers.token
-  if (token === undefined) {
-    return res.status(ReturnCode.BadRequest).json({
-      code: ErrorCode.MissingParameters,
-      msg: '缺少必要參數 token',
-    })
-  }
+router.patch('/profile', authHandler, upload.single('image'), async (req, res) => {
+  // const token = req.headers.token
+  // if (token === undefined) {
+  //   return res.status(ReturnCode.BadRequest).json({
+  //     code: ErrorCode.MissingParameters,
+  //     msg: '缺少必要參數 token',
+  //   })
+  // }
   try {
-    const userId = Number(token)
+    const userId = Number(req.authData.user.id)
     const user = await User.get({ id: userId, concealing: false })
     const BODY = req.body
     const { file } = req
