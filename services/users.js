@@ -1,4 +1,3 @@
-// const { User: UserModel } = require('../_models/index')
 const { ErrorCode } = require('../utils/codes')
 const multer = require('multer')
 const { getImageFolder, toBase62 } = require('../utils/index')

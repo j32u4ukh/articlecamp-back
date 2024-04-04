@@ -1,14 +1,26 @@
-const { Category: Model } = require('../_models/index')
+
+const db = require("../models");
+const { ErrorCode } = require('../utils/codes');
+const Category = db.category;
 
 class CategoryService {  
-  // TODO: 串接資料庫
-  getList(filterFunc) {
+  getList() {
     return new Promise((resolve, reject) => {
-      const categories = Model.getList(filterFunc)
-      resolve(categories)
+      Category.findAll({
+        attributes: ['id', 'name'],
+        raw: true,
+      }).then((categories) => {
+        resolve(categories)
+      }).catch((error)=>{
+        console.log(`讀取文章分類數據時發生錯誤, error: ${error}`)
+        reject({
+          code: ErrorCode.ReadError,
+          msg: "讀取文章分類數據時發生錯誤",
+        })
+      })
     })
   }
 }
 
-const Category = new CategoryService()
-module.exports = Category
+const Service = new CategoryService()
+module.exports = Service
