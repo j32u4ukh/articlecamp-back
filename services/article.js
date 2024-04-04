@@ -1,4 +1,4 @@
-const { Article: ArticleModel, Category } = require('../models')
+const { Article: ArticleModel, Category } = require('../_models/index.js')
 const Follow = require('./follows.js')
 const { ErrorCode } = require('../utils/codes.js')
 const Service = require('./base')

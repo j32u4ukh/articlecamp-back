@@ -1,6 +1,6 @@
-const { Follow: FollowModel } = require('../models/index')
+const { Follow: FollowModel } = require('../_models/index')
 const { ErrorCode } = require('../utils/codes.js')
-const User = require('../models/users')
+const User = require('../_models/users.js')
 
 class FollowService {
   getList(userId) {

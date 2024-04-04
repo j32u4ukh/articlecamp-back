@@ -1,4 +1,4 @@
-const { Category: Model } = require('../models/index')
+const { Category: Model } = require('../_models/index')
 
 class CategoryService {
   getList(filterFunc) {
