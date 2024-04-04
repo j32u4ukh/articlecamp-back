@@ -4,6 +4,7 @@ const { selectByOffsetSize } = require('../utils')
 const Service = require('./base')
 
 class UserFollowService extends Service {
+  // TODO: 串接資料庫
   getBatchDatas(userId, offset, size) {
     return new Promise(async (resolve, reject) => {
       const users = await this.getList(userId)
@@ -11,6 +12,7 @@ class UserFollowService extends Service {
       resolve(results)
     })
   }
+  // TODO: 串接資料庫
   getList(userId) {
     return new Promise(async (resolve, reject) => {
       let users = await User.getList(userId, true)

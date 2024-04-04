@@ -5,6 +5,7 @@ const Service = require('./base')
 const { User } = require('./users')
 
 class ArticleService extends Service {
+  // TODO: 串接資料庫
   // 新增文章
   add(article) {
     return new Promise((resolve, reject) => {
@@ -34,6 +35,7 @@ class ArticleService extends Service {
       }
     })
   }
+  // TODO: 串接資料庫
   // 取得批次的文章列表
   getBatchDatas(userId, offset, size, summary, filterFunc) {
     return new Promise(async (resolve, reject) => {
@@ -46,6 +48,7 @@ class ArticleService extends Service {
       }
     })
   }
+  // TODO: 串接資料庫
   // 取得文章列表
   getList(userId, summary, filterFunc) {
     return new Promise(async (resolve, reject) => {
@@ -94,6 +97,7 @@ class ArticleService extends Service {
       resolve(articles)
     })
   }
+  // TODO: 串接資料庫
   // 根據關鍵字搜尋文章
   getByKeyword(userId, offset, size, summary, keyword) {
     return new Promise(async (resolve, reject) => {
@@ -120,6 +124,7 @@ class ArticleService extends Service {
       resolve(results)
     })
   }
+  // TODO: 串接資料庫
   // 根據文章 ID 取得文章
   get({ id }) {
     return new Promise((resolve, reject) => {
@@ -134,6 +139,7 @@ class ArticleService extends Service {
       resolve(result.data)
     })
   }
+  // TODO: 串接資料庫
   // 根據文章 ID 更新文章
   update({ id, userId, article }) {
     return new Promise((resolve, reject) => {
@@ -180,6 +186,7 @@ class ArticleService extends Service {
         })
     })
   }
+  // TODO: 串接資料庫
   // 根據文章 ID 刪除文章
   delete({ id }) {
     return new Promise((resolve, reject) => {

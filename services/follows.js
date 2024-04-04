@@ -2,12 +2,14 @@ const { Follow: FollowModel } = require('../_models/index')
 const { ErrorCode } = require('../utils/codes.js')
 const User = require('../_models/users.js')
 
-class FollowService {
+class FollowService {  
+  // TODO: 串接資料庫
   getList(userId) {
     return new Promise((resolve, reject) => {
       resolve(FollowModel.getList(userId))
     })
   }
+  // TODO: 串接資料庫
   setRelationShip({ userId, followTo, follow }) {
     return new Promise((resolve, reject) => {
       if (!this.isUserExists(userId)) {
@@ -40,6 +42,7 @@ class FollowService {
         })
     })
   }
+  // TODO: 串接資料庫
   add({ userId, followTo }) {
     return new Promise((resolve, reject) => {
       const index = FollowModel.getRelationship(userId, followTo)
@@ -67,6 +70,7 @@ class FollowService {
         })
     })
   }
+  // TODO: 串接資料庫
   remove({ userId, followTo }) {
     return new Promise((resolve, reject) => {
       // 取得追隨關係數據
@@ -96,6 +100,7 @@ class FollowService {
         })
     })
   }
+  // TODO: 串接資料庫
   // 檢查用戶是否都存在
   isUserExists(userId) {
     const user = User.get(userId)

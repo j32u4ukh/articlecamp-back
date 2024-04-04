@@ -3,6 +3,7 @@ const { ErrorCode } = require('../utils/codes.js')
 const Service = require('./base')
 
 class MessageService extends Service {
+  // TODO: 串接資料庫
   getBatchDatas(articleId, offset, size, filterFunc) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -14,6 +15,7 @@ class MessageService extends Service {
       }
     })
   }
+  // TODO: 串接資料庫
   getList(articleId, filterFunc) {
     return new Promise((resolve, reject) => {
       const article = ArticleModel.get(articleId)
@@ -27,6 +29,7 @@ class MessageService extends Service {
       resolve(messages)
     })
   }
+  // TODO: 串接資料庫
   get({ id }) {
     return new Promise((resolve, reject) => {
       const result = MessageModel.get(id)
@@ -39,6 +42,7 @@ class MessageService extends Service {
       resolve(result.data)
     })
   }
+  // TODO: 串接資料庫
   add(userId, articleId, message) {
     return new Promise((resolve, reject) => {
       // 檢查 articleId 是否存在

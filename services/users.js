@@ -1,4 +1,4 @@
-const { User: UserModel } = require('../_models/index')
+// const { User: UserModel } = require('../_models/index')
 const { ErrorCode } = require('../utils/codes')
 const multer = require('multer')
 const { getImageFolder, toBase62 } = require('../utils/index')
@@ -6,16 +6,20 @@ const upload = multer({ dest: 'public/images/' })
 const fs = require('fs')
 const path = require('path')
 const jwt = require('jsonwebtoken')
+const db = require("../models");
+const User = db.user;
 
 // 實際使用中應從 config 讀取，且不應上傳 config
 const secretKey = 'ArticleCamp'
 
 class UserService {
+  // TODO: 串接資料庫
   getAll() {
     return new Promise((resolve, reject) => {
       resolve(UserModel.getList())
     })
   }
+  // TODO: 串接資料庫
   // concealing: 是否隱藏資訊
   getList(userId, concealing, filterFunc) {
     return new Promise((resolve, reject) => {
@@ -37,6 +41,7 @@ class UserService {
       resolve(users)
     })
   }
+  // TODO: 串接資料庫
   // concealing: 是否隱藏資訊
   get({ id, concealing = true }) {
     return new Promise((resolve, reject) => {
@@ -54,28 +59,32 @@ class UserService {
       resolve(data)
     })
   }
+  // 用戶登入，驗證成功後返回 JWT
   login({ email, password }) {
-    return new Promise(async (resolve, reject) => {
-      const user = UserModel.getByEmail(email)
-      if (user === undefined) {
-        return reject({
-          code: ErrorCode.NotFound,
-          msg: `找不到此信箱`,
-        })
-      }
-      if (password !== user.password) {
-        return reject({
-          code: ErrorCode.Unauthorized,
-          msg: `密碼不正確`,
-        })
-      }
-
-      delete user.password
-      delete user.image
-      delete user.createAt
-      resolve(user)
+    return new Promise((resolve, reject) => {
+      User.findOne({
+        attributes: ["id", "name", "email", "password"],
+        where: { email },
+        raw: true,
+      }).then((user)=>{
+        if (password !== user.password) {
+          return reject({
+            code: ErrorCode.Unauthorized,
+            msg: `密碼不正確`,
+          })
+        }      
+        delete user.password  
+        return resolve(user)
+      }).catch((error)=>{
+          console.log(`讀取用戶數據時發生錯誤, error: ${error}`)
+          return reject({
+            code: ErrorCode.ReadError,
+            msg: `讀取用戶數據時發生錯誤`,
+          })
+      })
     })
   }
+  // TODO: 串接資料庫
   add(user) {
     return new Promise((resolve, reject) => {
       const isValid = UserModel.validate(user, UserModel.requiredFields)
@@ -107,6 +116,7 @@ class UserService {
         })
     })
   }
+  // TODO: 串接資料庫
   // 根據 id 更新用戶數據
   update({ id, user }) {
     return new Promise((resolve, reject) => {
@@ -143,7 +153,8 @@ class UserService {
         })
     })
   }
-  // TODO: 每個用戶有自己的資料夾，當中則是專屬各個使用者的圖片資源
+  // TODO: 串接資料庫
+  // 每個用戶有自己的資料夾，當中則是專屬各個使用者的圖片資源
   // 經過 upload.single() 這個 middleware 後，檔案的部分就會被放到 req.file 屬性裡，而其他非檔案的欄位仍然會保留在 req.body 屬性裡
   uploadImage(userId, image) {
     return new Promise((resolve, reject) => {
@@ -239,5 +250,5 @@ class UserService {
   }
 }
 
-const User = new UserService()
-module.exports = { User, upload }
+const Service = new UserService()
+module.exports = { User: Service, upload }
