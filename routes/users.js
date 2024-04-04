@@ -5,6 +5,7 @@ const { ReturnCode, ErrorCode } = require('../utils/codes')
 const { getImageFolder } = require('../utils')
 const fs = require('fs')
 const path = require('path')
+const authHandler = require('../middlewares/auth')
 
 // 建立路由物件
 const router = Router()
@@ -79,15 +80,8 @@ router.get('/images/:userId/:fileName', (req, res) => {
   })
 })
 
-router.get('/profile', (req, res) => {
-  const token = req.headers.token
-  if (token === undefined) {
-    return res.status(ReturnCode.BadRequest).json({
-      code: ErrorCode.MissingParameters,
-      msg: '缺少必要參數 token',
-    })
-  }
-  const userId = Number(token)
+router.get('/profile', authHandler, (req, res) => {
+  const userId = Number(req.authData.user.id)
   User.get({
     id: userId,
   })

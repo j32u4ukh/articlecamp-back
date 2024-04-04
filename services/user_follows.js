@@ -15,7 +15,8 @@ class UserFollowService extends Service {
   // TODO: 串接資料庫
   getList(userId) {
     return new Promise(async (resolve, reject) => {
-      let users = await User.getList(userId, true)
+      // 取得自己以外的用戶列表
+      let users = await User.getOthers({id: userId, concealing: true})
       users = users.filter((user) => user.id !== userId)
       const relationship = await Follow.getList(userId)
       // 根據追隨關係，進行排序後，再考慮 offset 和 size

@@ -5,58 +5,83 @@ const { getImageFolder, toBase62 } = require('../utils/index')
 const upload = multer({ dest: 'public/images/' })
 const fs = require('fs')
 const path = require('path')
-const jwt = require('jsonwebtoken')
 const db = require("../models");
+const { Op } = require("sequelize");
 const User = db.user;
 
-// 實際使用中應從 config 讀取，且不應上傳 config
-const secretKey = 'ArticleCamp'
-
 class UserService {
-  // TODO: 串接資料庫
   getAll() {
     return new Promise((resolve, reject) => {
-      resolve(UserModel.getList())
-    })
-  }
-  // TODO: 串接資料庫
-  // concealing: 是否隱藏資訊
-  getList(userId, concealing, filterFunc) {
-    return new Promise((resolve, reject) => {
-      let users = UserModel.getList((user) => {
-        if (filterFunc) {
-          let cond = filterFunc(user)
-          if (cond === false) {
-            return false
-          }
-        }
-        return user.id !== userId
+      User.findAll({
+        attributes: ["id", "name", "email", "updatedAt"],
+        // where: { userId },
+        // offset: (page - 1) * limit,
+        // limit,
+        raw: true,
+      }).then((users)=>{
+        resolve(users)
+      }).catch((error)=>{
+          console.log(`讀取用戶列表時發生錯誤, error: ${error}`)
+          return reject({
+            code: ErrorCode.ReadError,
+            msg: `讀取用戶列表時發生錯誤`,
+          })
       })
-      if (concealing) {
-        users = users.map((user) => {
-          delete user.password
-          return user
-        })
-      }
-      resolve(users)
     })
   }
-  // TODO: 串接資料庫
+  // concealing: 是否隱藏資訊
+  getOthers({userId, concealing}) {
+    return new Promise((resolve, reject) => {
+      let attributes = ["id", "name", "email", "updatedAt"]
+      if(!concealing){
+        attributes.push("password")
+        attributes.push("createdAt")
+      }
+      User.findAll({
+        attributes: attributes,
+        where: { 
+          id: {
+            [Op.ne]: userId,
+          },
+        },
+        raw: true,
+      }).then((users)=>{
+        resolve(users)
+      }).catch((error)=>{
+          console.log(`讀取用戶列表時發生錯誤, error: ${error}`)
+          return reject({
+            code: ErrorCode.ReadError,
+            msg: `讀取用戶列表時發生錯誤`,
+          })
+      })
+    })
+  }
   // concealing: 是否隱藏資訊
   get({ id, concealing = true }) {
     return new Promise((resolve, reject) => {
-      let { index, data } = UserModel.get(id)
-      if (index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的用戶`,
-        })
+      let attributes = ["id", "name", "email", "updatedAt"]
+      if(!concealing){
+        attributes.push("password")
+        attributes.push("createdAt")
       }
-      if (concealing) {
-        delete data.password
-        delete data.createAt
-      }
-      resolve(data)
+      User.findByPk(id, {
+        attributes: attributes,
+        raw: true,
+      }).then((user) =>{
+        if(user === null){
+          return reject({
+            code: ErrorCode.NotFound,
+            msg: `沒有 id 為 ${id} 的用戶`,
+          })
+        }
+        return resolve(user)
+      }).catch((error)=>{
+          console.log(`讀取用戶數據時發生錯誤, error: ${error}`)
+          return reject({
+            code: ErrorCode.ReadError,
+            msg: `讀取用戶數據時發生錯誤`,
+          })
+      })
     })
   }
   // 用戶登入，驗證成功後返回 JWT
@@ -84,36 +109,32 @@ class UserService {
       })
     })
   }
-  // TODO: 串接資料庫
+  // 新增用戶
   add(user) {
-    return new Promise((resolve, reject) => {
-      const isValid = UserModel.validate(user, UserModel.requiredFields)
-      if (!isValid) {
-        return reject({
-          code: ErrorCode.MissingParameters,
-          msg: `缺少必要參數, requiredFields: ${JSON.stringify(
-            UserModel.requiredFields
-          )}`,
-        })
-      }
-      const temp = UserModel.getByEmail(user.email)
-      if (temp !== undefined) {
-        return reject({
-          code: ErrorCode.Conflict,
-          msg: `此信箱(${user.email})已註冊過`,
-        })
-      }
-      UserModel.add(user)
-        .then((result) => {
-          resolve(result)
-        })
-        .catch((error) => {
-          console.error(error)
-          reject({
-            code: ErrorCode.WriteError,
-            msg: '寫入數據時發生錯誤',
+    return new Promise(async (resolve, reject) => {
+      try{
+        const count = await User.count({
+          where: { email: user.email },
+        });
+        if (count > 0) {
+          return reject({
+            code: ErrorCode.Conflict,
+            msg: `此信箱(${user.email})已註冊過`,
           })
-        })
+        }
+        const result = User.create({
+            name: user.name,
+            email: user.email,
+            password: user.password,
+          })
+        resolve(result)
+      }catch(error){
+          console.error(error)
+          return reject({
+            code: ErrorCode.WriteError,
+            msg: '新增玩家時發生錯誤',
+          })
+      }
     })
   }
   // TODO: 串接資料庫
@@ -153,7 +174,6 @@ class UserService {
         })
     })
   }
-  // TODO: 串接資料庫
   // 每個用戶有自己的資料夾，當中則是專屬各個使用者的圖片資源
   // 經過 upload.single() 這個 middleware 後，檔案的部分就會被放到 req.file 屬性裡，而其他非檔案的欄位仍然會保留在 req.body 屬性裡
   uploadImage(userId, image) {
@@ -201,51 +221,6 @@ class UserService {
           })
         })
       })
-    })
-  }
-  // 生成 JWT
-  generateToken(user) {
-    return new Promise((resolve, reject) => {
-      jwt.sign({ user }, secretKey, { expiresIn: '1h' }, (err, token) => {
-        if (err) {
-          reject({
-            code: ErrorCode.ServerInternalError,
-            msg: '生成 jwt 時發生錯誤',
-          })
-        } else {
-          resolve(token)
-        }
-      })
-    })
-  }
-  verifyToken(req) {
-    return new Promise((resolve, reject) => {
-      // 獲取 Authorization 頭
-      const bearerHeader = req.headers['authorization']
-
-      // 檢查是否有 token
-      if (bearerHeader === undefined || bearerHeader === '') {
-        return reject({
-          code: ErrorCode.MissingParameters,
-          msg: 'Header 中缺少 jwt',
-        })
-      } else {
-        // 分割 token
-        const bearer = bearerHeader.split(' ')
-        const token = bearer[1]
-
-        // 驗證 token
-        jwt.verify(token, secretKey, (err, authData) => {
-          if (err) {
-            return reject({
-              code: ErrorCode.Forbidden,
-              msg: 'jwt 驗證失敗',
-            })
-          } else {
-            return resolve(authData)
-          }
-        })
-      }
     })
   }
 }

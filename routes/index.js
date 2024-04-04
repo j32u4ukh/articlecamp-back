@@ -77,6 +77,17 @@ v2.post('/login', (req, res) => {
     })
 })
 
+v2.get('/test', (req, res) => {
+  // const {User} = require('../services')
+  // User.getOthers({userId: 1, concealing: true})
+  // .then((users) => {
+  //   console.log(`users: ${JSON.stringify(users)}`)
+  //   res.json(users)
+  // }).catch((error)=>[
+  //   res.status(500).json(error)
+  // ])
+})
+
 // 將 API-v2 相關路由加入根路由
 router.use('/v2', v2)
 

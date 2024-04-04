@@ -13,6 +13,7 @@ class AuthService {
     return new Promise(async (resolve, reject) => {
       try {
         const user = await User.login({ email, password })
+        // user.id = 99
         const token = await this.generateToken(user)
         this.tokens[user.id] = token
         resolve(token)
