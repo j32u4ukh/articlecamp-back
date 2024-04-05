@@ -1,8 +1,11 @@
-const { Article: ArticleModel, Category } = require('../_models/index.js')
+// const { Article: ArticleModel, Category } = require('../_models/index.js')
 const Follow = require('./follows.js')
 const { ErrorCode } = require('../utils/codes.js')
 const Service = require('./base')
 const { User } = require('./users')
+
+const db = require('../models')
+const Article = db.article
 
 class ArticleService extends Service {
   // TODO: 串接資料庫
@@ -124,19 +127,28 @@ class ArticleService extends Service {
       resolve(results)
     })
   }
-  // TODO: 串接資料庫
   // 根據文章 ID 取得文章
   get({ id }) {
     return new Promise((resolve, reject) => {
-      const result = ArticleModel.get(id)
-      if (result.index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的文章`,
+      Article.findByPk(id, {
+        raw: true,
+      })
+        .then((article) => {
+          if (!article) {
+            return reject({
+              code: ErrorCode.NotFound,
+              msg: `沒有 id 為 ${id} 的文章`,
+            })
+          }
+          return resolve(article)
         })
-        return
-      }
-      resolve(result.data)
+        .catch((error) => {
+          console.log(`讀取文章數據時發生錯誤, error: ${error}`)
+          return reject({
+            code: ErrorCode.ReadError,
+            msg: '讀取文章數據時發生錯誤',
+          })
+        })
     })
   }
   // TODO: 串接資料庫
@@ -216,5 +228,5 @@ class ArticleService extends Service {
   }
 }
 
-const Article = new ArticleService()
-module.exports = Article
+const service = new ArticleService()
+module.exports = service
