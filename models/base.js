@@ -1,4 +1,5 @@
 const { readFile, writeFile } = require('fs')
+const { deepCopy } = require('../utils')
 
 class Model {
   constructor({ file_path }) {
@@ -10,7 +11,8 @@ class Model {
     if (index === -1) {
       return { index: -1, data: null }
     } else {
-      return { index: index, data: datas[index] }
+      const data = deepCopy(datas[index])
+      return { index, data }
     }
   }
   sortByTime(datas, field) {
@@ -20,11 +22,13 @@ class Model {
   }
   getList(datas, func) {
     if (func) {
-      return datas.filter((data) => {
-        return func(data)
-      })
+      return deepCopy(
+        datas.filter((data) => {
+          return func(data)
+        })
+      )
     } else {
-      return datas
+      return deepCopy(datas)
     }
   }
   // 檢查傳入數據(data)是否必要欄位(requiredFields)都有定義，呼叫 Model 新增或更新數據前，須確保欄位都正確

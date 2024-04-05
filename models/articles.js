@@ -47,10 +47,6 @@ class ArticleModel extends Model {
         })
     })
   }
-  // 取得所有文章
-  getAll() {
-    return this.articles
-  }
   // 根據文章 id 取得指定文章
   get(id) {
     return super.get({ id: id, datas: this.articles })

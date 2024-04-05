@@ -6,6 +6,25 @@ const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const textEncoder = new TextEncoder()
 const base62Encoder = baseX(BASE62)
 
+// 定義一個函數，用於深拷貝物件或陣列
+function _deepCopy(obj) {
+  // 如果是原始資料類型，直接返回
+  if (typeof obj !== 'object' || obj === null) {
+    return obj
+  }
+
+  // 根據原始資料的類型創建新的物件或陣列
+  const clone = Array.isArray(obj) ? [] : {}
+
+  // 遞迴地拷貝每個屬性或元素
+  for (let key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      clone[key] = _deepCopy(obj[key])
+    }
+  }
+  return clone
+}
+
 module.exports = {
   getTimestamp() {
     return Math.floor(new Date().getTime() / 1000)
@@ -49,5 +68,9 @@ module.exports = {
       datas: datas.slice(offset, len),
     }
     return results
+  },
+  // 定義一個函數，用於深拷貝物件或陣列
+  deepCopy(obj) {
+    return _deepCopy(obj)
   },
 }

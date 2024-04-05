@@ -42,10 +42,9 @@ class FollowModel extends Model {
     })
   }
   getList(userId) {
-    const results = this.follows.filter((follow) => {
-      return follow.userId === userId
+    return super.getList(this.follows, (data) => {
+      return data.userId === userId
     })
-    return results
   }
   getRelationship(userId, targetId) {
     const index = this.follows.findIndex((follow) => {
