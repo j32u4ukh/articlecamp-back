@@ -11,7 +11,7 @@ const router = Router()
 
 router.get('/', function (req, res) {
   const token = req.headers.token
-  if (token === undefined) {
+  if (token === undefined || token === '') {
     return res.status(ReturnCode.BadRequest).json({
       code: ErrorCode.MissingParameters,
       msg: '缺少必要參數 token',

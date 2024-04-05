@@ -5,6 +5,10 @@ const { getImageFolder, toBase62 } = require('../utils/index')
 const upload = multer({ dest: 'public/images/' })
 const fs = require('fs')
 const path = require('path')
+const jwt = require('jsonwebtoken')
+
+// 實際使用中應從 config 讀取，且不應上傳 config
+const secretKey = 'ArticleCamp'
 
 class UserService {
   getAll() {
@@ -50,17 +54,45 @@ class UserService {
       resolve(data)
     })
   }
+  login({ email, password }) {
+    return new Promise(async (resolve, reject) => {
+      const user = UserModel.getByEmail(email)
+      if (user === undefined) {
+        return reject({
+          code: ErrorCode.NotFound,
+          msg: `找不到此信箱`,
+        })
+      }
+      if (password !== user.password) {
+        return reject({
+          code: ErrorCode.Unauthorized,
+          msg: `密碼不正確`,
+        })
+      }
+
+      delete user.password
+      delete user.image
+      delete user.createAt
+      resolve(user)
+    })
+  }
   add(user) {
     return new Promise((resolve, reject) => {
       const isValid = UserModel.validate(user, UserModel.requiredFields)
       if (!isValid) {
-        reject({
+        return reject({
           code: ErrorCode.MissingParameters,
           msg: `缺少必要參數, requiredFields: ${JSON.stringify(
             UserModel.requiredFields
           )}`,
         })
-        return
+      }
+      const temp = UserModel.getByEmail(user.email)
+      if (temp !== undefined) {
+        return reject({
+          code: ErrorCode.Conflict,
+          msg: `此信箱(${user.email})已註冊過`,
+        })
       }
       UserModel.add(user)
         .then((result) => {
@@ -111,7 +143,6 @@ class UserService {
         })
     })
   }
-
   // TODO: 每個用戶有自己的資料夾，當中則是專屬各個使用者的圖片資源
   // 經過 upload.single() 這個 middleware 後，檔案的部分就會被放到 req.file 屬性裡，而其他非檔案的欄位仍然會保留在 req.body 屬性裡
   uploadImage(userId, image) {
@@ -159,6 +190,51 @@ class UserService {
           })
         })
       })
+    })
+  }
+  // 生成 JWT
+  generateToken(user) {
+    return new Promise((resolve, reject) => {
+      jwt.sign({ user }, secretKey, { expiresIn: '1h' }, (err, token) => {
+        if (err) {
+          reject({
+            code: ErrorCode.ServerInternalError,
+            msg: '生成 jwt 時發生錯誤',
+          })
+        } else {
+          resolve(token)
+        }
+      })
+    })
+  }
+  verifyToken(req) {
+    return new Promise((resolve, reject) => {
+      // 獲取 Authorization 頭
+      const bearerHeader = req.headers['authorization']
+
+      // 檢查是否有 token
+      if (bearerHeader === undefined || bearerHeader === '') {
+        return reject({
+          code: ErrorCode.MissingParameters,
+          msg: 'Header 中缺少 jwt',
+        })
+      } else {
+        // 分割 token
+        const bearer = bearerHeader.split(' ')
+        const token = bearer[1]
+
+        // 驗證 token
+        jwt.verify(token, secretKey, (err, authData) => {
+          if (err) {
+            return reject({
+              code: ErrorCode.Forbidden,
+              msg: 'jwt 驗證失敗',
+            })
+          } else {
+            return resolve(authData)
+          }
+        })
+      }
     })
   }
 }

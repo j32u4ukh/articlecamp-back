@@ -5,7 +5,6 @@
         "email": "henry@articlecamp.com",
         "password": "password",
         "image": "icons8-h-100.png",
-        "categories": [],
         "createAt": 1705819929,
         "updateAt": 1705819929
     },
@@ -15,7 +14,6 @@
         "email": "alex@articlecamp.com",
         "password": "password",
         "image": "icons8-a-100.png",
-        "categories": [],
         "createAt": 1705819929,
         "updateAt": 1705819929
     },
@@ -25,7 +23,6 @@
         "email": "shang-ruey@articlecamp.com",
         "password": "password",
         "image": "icons8-s-100.png",
-        "categories": [],
         "createAt": 1705819929,
         "updateAt": 1705819929
     },
@@ -35,7 +32,6 @@
         "email": "louis@articlecamp.com",
         "password": "password",
         "image": "icons8-l-100.png",
-        "categories": [],
         "createAt": 1705819929,
         "updateAt": 1705819929
     },
@@ -45,7 +41,6 @@
         "email": "peggy@articlecamp.com",
         "password": "password",
         "image": "icons8-p-100.png",
-        "categories": [],
         "createAt": 1705819929,
         "updateAt": 1705819929
     },
@@ -55,7 +50,6 @@
         "email": "ConfuseCat@articlecamp.com",
         "password": "password",
         "image": "6\\8sy04jqVJ0wcN0VSeogwn6XpXqBJu7w.png",
-        "categories": [],
         "createAt": 1705819929,
         "updateAt": 1711270411
     }
