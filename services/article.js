@@ -1,11 +1,13 @@
 // const { Article: ArticleModel, Category } = require('../_models/index.js')
-const Follow = require('./follows.js')
+// const Follow = require('./follows.js')
 const { ErrorCode } = require('../utils/codes.js')
 const Service = require('./base')
 const { User } = require('./users')
-
+const { Sequelize, Op } = require('sequelize')
 const db = require('../models')
+const { options } = require('../routes/articles.js')
 const Article = db.article
+const Follow = db.follow
 
 class ArticleService extends Service {
   // TODO: 串接資料庫
@@ -44,60 +46,57 @@ class ArticleService extends Service {
     return new Promise(async (resolve, reject) => {
       try {
         const articles = await this.getList(userId, summary, filterFunc)
-        const results = super.getBatchDatas({ datas: articles, offset, size })
-        resolve(results)
+        // const results = super.getBatchDatas({ datas: articles, offset, size })
+        resolve(articles)
       } catch (error) {
         reject(error)
       }
     })
   }
-  // TODO: 串接資料庫
   // 取得文章列表
   getList(userId, summary, filterFunc) {
     return new Promise(async (resolve, reject) => {
-      // 取得用戶 ID 以及其追蹤對象的 ID 列表
-      const ids = [userId]
-      const follows = await Follow.getList(userId)
-      follows.forEach((follow) => {
-        ids.push(follow.followTo)
-      })
-
-      // 根據 ID 列表返回文章列表
-      let articles = ArticleModel.getList((article) => {
-        if (filterFunc) {
-          let cond = filterFunc(article)
-          if (cond === false) {
-            return false
-          }
-        }
-        return (
-          // 只取得 ID 列表中的作者的文章
-          ids.findIndex((id) => {
-            return id === article.userId
-          }) !== -1
-        )
-      })
-
-      // 取得用戶列表，並將用戶名稱帶入文章列表數據
-      const users = await User.getAll()
-      articles = articles.map((article) => {
-        const user = users.find((user) => {
-          return user.id === article.userId
+      const options = {
+        where: {
+          [Op.or]: [
+            { userId: userId },
+            {
+              userId: {
+                [Op.in]: [
+                  Sequelize.literal(
+                    `SELECT \`followTo\` FROM \`follows\` WHERE \`userId\` = ${userId}`
+                  ),
+                ],
+              },
+            },
+          ],
+        },
+        order: [['updatedAt', 'ASC']],
+        limit: 10,
+        offset: 20,
+      }
+      Article.findAll(options)
+        .then((articles) => {
+          articles = articles.map((article) => {
+            // 是否返回摘要即可
+            if (summary) {
+              let preview = article.content.substring(0, 20)
+              if (article.content.length > 20) {
+                preview += '...'
+              }
+              article.content = preview
+            }
+            return article
+          })
+          resolve(articles)
         })
-        if (user) {
-          article.author = user.name
-        }
-        // 是否返回摘要即可
-        if (summary) {
-          let preview = article.content.substring(0, 20)
-          if (article.content.length > 20) {
-            preview += '...'
-          }
-          article.content = preview
-        }
-        return article
-      })
-      resolve(articles)
+        .catch((error) => {
+          console.error(error)
+          reject({
+            code: ErrorCode.ReadError,
+            msg: '讀取文章列表數據時發生錯誤',
+          })
+        })
     })
   }
   // TODO: 串接資料庫
