@@ -1,5 +1,5 @@
 const Model = require('./base')
-const { getTimestamp } = require('../utils')
+const { getTimestamp, deepCopy } = require('../utils')
 
 class ArticleModel extends Model {
   constructor() {
@@ -53,11 +53,13 @@ class ArticleModel extends Model {
   }
   getList(func) {
     if (func) {
-      return this.articles.filter((article) => {
-        return func(article)
-      })
+      return deepCopy(
+        this.articles.filter((article) => {
+          return func(article)
+        })
+      )
     } else {
-      return this.articles
+      return deepCopy(this.articles)
     }
   }
   // 根據文章 id 更新指定文章
