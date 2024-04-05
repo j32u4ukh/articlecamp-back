@@ -18,13 +18,14 @@ class CategoryModel extends Model {
       })
   }
   getList(func) {
-    if (func) {
-      return this.categories.filter((category) => {
-        return func(category)
-      })
-    } else {
-      return this.categories
-    }
+    // if (func) {
+    //   return this.categories.filter((category) => {
+    //     return func(category)
+    //   })
+    // } else {
+    //   return this.categories
+    // }
+    return super.getList(this.categories, func)
   }
   getId(name) {
     name = name.toUpperCase()
