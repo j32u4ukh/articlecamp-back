@@ -1,6 +1,7 @@
 const { ErrorCode } = require('../utils/codes.js')
 const Service = require('./base')
 const { Sequelize, Op } = require('sequelize')
+const Category = require('./categories')
 const db = require('../models')
 const Article = db.article
 
@@ -64,20 +65,27 @@ class ArticleService extends Service {
     if (filter.offset) {
       options.offset = Number(filter.offset)
     }
-    if (filter.keyword) {
+    if (filter.keyword || filter.cid) {
+      const condition = []
+      if (filter.keyword) {
+        condition.push({
+          title: {
+            [Op.like]: `%${filter.keyword}%`,
+          },
+        })
+        condition.push({
+          content: {
+            [Op.like]: `%${filter.keyword}%`,
+          },
+        })
+      }
+      if (filter.cid) {
+        condition.push({
+          category: filter.cid,
+        })
+      }
       options.where[Op.and].push({
-        [Op.or]: [
-          {
-            title: {
-              [Op.like]: `%${filter.keyword}%`,
-            },
-          },
-          {
-            content: {
-              [Op.like]: `%${filter.keyword}%`,
-            },
-          },
-        ],
+        [Op.or]: condition,
       })
     }
     return options
@@ -127,31 +135,20 @@ class ArticleService extends Service {
         })
     })
   }
-  // TODO: 串接資料庫
   // 根據關鍵字搜尋文章
   getByKeyword(userId, offset, size, keyword) {
     return new Promise(async (resolve, reject) => {
       keyword = keyword.toUpperCase()
+
+      // TODO: 追加 author
+      const filter = { keyword }
+
       // NOTE: 搜尋字如果要搜文章分類，必須是完整名稱，不區分大小寫
       // 根據搜尋字反查文章分類 id，再比對各篇文章的分類 id，而非將各篇文章的分類 id 轉換成字串來比對
-      // let cid = Category.getId(keyword)
-      // const articles = await this.getList(userId, summary, (article) => {
-      //   if (article.author.toUpperCase().includes(keyword)) {
-      //     return true
-      //   }
-      //   if (article.title.toUpperCase().includes(keyword)) {
-      //     return true
-      //   }
-      //   if (article.content.toUpperCase().includes(keyword)) {
-      //     return true
-      //   }
-      //   if (cid !== null && article.category === cid) {
-      //     return true
-      //   }
-      //   return false
-      // })
-      // TODO: 追加 category & author
-      const filter = { keyword }
+      let cid = Category.getId(keyword)
+      if (cid !== null) {
+        filter.cid = cid
+      }
       const articles = await this.getBatchDatas(userId, offset, size, filter)
       // const results = super.getBatchDatas({ datas: articles, offset, size })
       resolve(articles)
