@@ -1,13 +1,8 @@
-// const { Article: ArticleModel, Category } = require('../_models/index.js')
-// const Follow = require('./follows.js')
 const { ErrorCode } = require('../utils/codes.js')
 const Service = require('./base')
-const { User } = require('./users')
 const { Sequelize, Op } = require('sequelize')
 const db = require('../models')
-const { options } = require('../routes/articles.js')
 const Article = db.article
-const Follow = db.follow
 
 class ArticleService extends Service {
   // TODO: 串接資料庫
@@ -40,46 +35,58 @@ class ArticleService extends Service {
       }
     })
   }
-  // TODO: 串接資料庫
-  // 取得批次的文章列表
-  getBatchDatas(userId, offset, size, summary, filterFunc) {
+  getOptions(userId, filter = {}) {
+    const options = {
+      where: {
+        [Op.or]: [
+          { userId: userId },
+          {
+            userId: {
+              [Op.in]: [
+                Sequelize.literal(
+                  `SELECT \`followTo\` FROM \`follows\` WHERE \`userId\` = ${userId}`
+                ),
+              ],
+            },
+          },
+        ],
+      },
+      order: [['updatedAt', 'ASC']],
+    }
+    if (filter.limit) {
+      options.limit = Number(filter.limit)
+    }
+    if (filter.offset) {
+      options.offset = Number(filter.offset)
+    }
+    return options
+  }
+  getCount(userId, filter = {}) {
     return new Promise(async (resolve, reject) => {
-      try {
-        const articles = await this.getList(userId, summary, filterFunc)
-        // const results = super.getBatchDatas({ datas: articles, offset, size })
-        resolve(articles)
-      } catch (error) {
-        reject(error)
-      }
+      const options = this.getOptions(userId, filter)
+      Article.count(options)
+        .then((count) => {
+          resolve(count)
+        })
+        .catch((error) => {
+          console.error(error)
+          reject({
+            code: ErrorCode.ReadError,
+            msg: '讀取文章列表數據時發生錯誤',
+          })
+        })
     })
   }
   // 取得文章列表
-  getList(userId, summary, filterFunc) {
+  getList(userId, filter) {
     return new Promise(async (resolve, reject) => {
-      const options = {
-        where: {
-          [Op.or]: [
-            { userId: userId },
-            {
-              userId: {
-                [Op.in]: [
-                  Sequelize.literal(
-                    `SELECT \`followTo\` FROM \`follows\` WHERE \`userId\` = ${userId}`
-                  ),
-                ],
-              },
-            },
-          ],
-        },
-        order: [['updatedAt', 'ASC']],
-        limit: 10,
-        offset: 20,
-      }
+      const options = this.getOptions(userId, filter)
+      // console.log(`options: ${JSON.stringify(options, null, 4)}`)
       Article.findAll(options)
         .then((articles) => {
           articles = articles.map((article) => {
             // 是否返回摘要即可
-            if (summary) {
+            if (filter.summary) {
               let preview = article.content.substring(0, 20)
               if (article.content.length > 20) {
                 preview += '...'

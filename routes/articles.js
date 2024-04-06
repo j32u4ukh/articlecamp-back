@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
         }
       )
     } else {
-      Article.getBatchDatas(userId, offset, size, summary).then((articles) => {
+      Article.getBatchDatas(userId, offset, size).then((articles) => {
         res.json(articles)
       })
     }

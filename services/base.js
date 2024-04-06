@@ -1,29 +1,31 @@
 class Service {
-  getBatchDatas({ datas, offset, size }) {
-    offset = Number(offset)
-    size = Number(size)
-
-    if (isNaN(offset)) {
-      offset = 0
-    }
-
-    if (isNaN(size) || size === 0) {
-      size = 10
-    }
-
-    const total = datas.length
-    if (offset > total) {
-      offset = total
-    }
-    let len = offset + size
-    len = len > total ? total : len
-    const results = {
-      total: total,
-      offset: offset,
-      size: len - offset,
-      datas: datas.slice(offset, len),
-    }
-    return results
+  getCount(userId, filter) {
+    return new Promise((resolve, reject) => {})
+  }
+  getList(userId, filter) {
+    return new Promise((resolve, reject) => {})
+  }
+  getBatchDatas(userId, offset, size) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        offset = Number(offset)
+        let limit = Number(size)
+        offset = offset === undefined ? 0 : offset
+        limit = limit === undefined ? 10 : limit
+        const filter = { offset, limit, summary: true }
+        const count = await this.getCount(userId, filter)
+        const datas = await this.getList(userId, filter)
+        const results = {
+          total: count,
+          offset: offset,
+          size: datas.length,
+          datas: datas,
+        }
+        resolve(results)
+      } catch (error) {
+        reject(error)
+      }
+    })
   }
 }
 
