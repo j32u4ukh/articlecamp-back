@@ -131,51 +131,43 @@ class ArticleService extends Service {
         })
     })
   }
-  // TODO: 串接資料庫
   // 根據文章 ID 更新文章
   update({ id, userId, article }) {
-    return new Promise((resolve, reject) => {
-      article.category = Category.validCategory(article.category)
-      const { index, data } = ArticleModel.get(id)
-      if (index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的文章`,
-        })
-        return
-      }
+    return new Promise(async (resolve, reject) => {
+      try {
+        const data = await this.get({ id })
 
-      // 檢查請求是否來自原作者
-      if (userId !== data.userId) {
-        return reject({
-          code: ErrorCode.Unauthorized,
-          msg: '當前用戶沒有權限修改這篇文章',
-        })
-      }
+        // 檢查請求是否來自原作者
+        if (userId !== data.userId) {
+          return reject({
+            code: ErrorCode.Unauthorized,
+            msg: '當前用戶沒有權限修改這篇文章',
+          })
+        }
+        article.id = id
+        article.userId = data.userId
+        article.createAt = data.createAt
 
-      article.id = id
-      article.userId = data.userId
-      article.createAt = data.createAt
-      const isValid = ArticleModel.validate(article)
-      if (!isValid) {
-        return reject({
-          code: ErrorCode.MissingParameters,
-          msg: '缺少必要參數',
-        })
-      }
-
-      // 更新文章數據
-      ArticleModel.update(article)
-        .then((result) => {
-          resolve(result)
-        })
-        .catch((err) => {
-          console.error(err)
-          reject({
+        const result = await Article.update(article, { where: { id, userId } })
+        if (Number(result[0]) > 0) {
+          return resolve({
+            msg: 'OK',
+          })
+        } else {
+          return resolve({
+            msg: 'Nothing changed',
+          })
+        }
+      } catch (error) {
+        if (error.code === undefined || error.msg === undefined) {
+          console.log(`更新數據時發生錯誤, error: ${error}`)
+          error = {
             code: ErrorCode.UpdateError,
             msg: '更新數據時發生錯誤',
-          })
-        })
+          }
+        }
+        return reject(error)
+      }
     })
   }
   // TODO: 串接資料庫
