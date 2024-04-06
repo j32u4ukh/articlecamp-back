@@ -15,15 +15,13 @@ router.get('/', async (req, res) => {
     const keyword = req.query.keyword
     const offset = req.query.offset
     const size = req.query.size
+    const filter = {}
     if (keyword) {
-      Article.getByKeyword(userId, offset, size, keyword).then((articles) => {
-        res.json(articles)
-      })
-    } else {
-      Article.getBatchDatas(userId, offset, size).then((articles) => {
-        res.json(articles)
-      })
+      filter.keyword = keyword
     }
+    Article.getBatchDatas(userId, offset, size, filter).then((articles) => {
+      res.json(articles)
+    })
   } catch (error) {
     res.status(ErrorCode.getReturnCode(error.code)).json(error)
   }

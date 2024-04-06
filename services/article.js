@@ -38,120 +38,23 @@ class ArticleService extends Service {
   }
   // TODO: JOIN USER 根據 user id 放入作者名稱
   getOptions(userId, filter = {}) {
-    const options = {
-      where: {
-        [Op.and]: [
-          {
-            [Op.or]: [
-              { userId: userId },
-              {
-                userId: {
-                  [Op.in]: [
-                    Sequelize.literal(
-                      `SELECT \`followTo\` FROM \`follows\` WHERE \`userId\` = ${userId}`
-                    ),
-                  ],
-                },
-              },
-            ],
-          },
-        ],
-      },
-      order: [['updatedAt', 'ASC']],
-    }
-    if (filter.limit) {
-      options.limit = Number(filter.limit)
-    }
-    if (filter.offset) {
-      options.offset = Number(filter.offset)
-    }
-    if (filter.keyword || filter.cid) {
-      const condition = []
-      if (filter.keyword) {
-        condition.push({
-          title: {
-            [Op.like]: `%${filter.keyword}%`,
-          },
-        })
-        condition.push({
-          content: {
-            [Op.like]: `%${filter.keyword}%`,
-          },
-        })
-      }
-      if (filter.cid) {
-        condition.push({
-          category: filter.cid,
-        })
-      }
-      options.where[Op.and].push({
-        [Op.or]: condition,
-      })
-    }
-    return options
-  }
-  getCount(userId, filter = {}) {
-    return new Promise(async (resolve, reject) => {
-      const options = this.getOptions(userId, filter)
-      Article.count(options)
-        .then((count) => {
-          resolve(count)
-        })
-        .catch((error) => {
-          console.error(error)
-          reject({
-            code: ErrorCode.ReadError,
-            msg: '讀取文章列表數據時發生錯誤',
-          })
-        })
-    })
-  }
-  // 取得文章列表
-  getList(userId, filter) {
-    return new Promise(async (resolve, reject) => {
-      const options = this.getOptions(userId, filter)
-      // console.log(`options: ${JSON.stringify(options, null, 4)}`)
-      Article.findAll(options)
-        .then((articles) => {
-          articles = articles.map((article) => {
-            // 是否返回摘要即可
-            if (filter.summary) {
-              let preview = article.content.substring(0, 20)
-              if (article.content.length > 20) {
-                preview += '...'
-              }
-              article.content = preview
-            }
-            return article
-          })
-          resolve(articles)
-        })
-        .catch((error) => {
-          console.error(error)
-          reject({
-            code: ErrorCode.ReadError,
-            msg: '讀取文章列表數據時發生錯誤',
-          })
-        })
-    })
-  }
-  // 根據關鍵字搜尋文章
-  getByKeyword(userId, offset, size, keyword) {
-    return new Promise(async (resolve, reject) => {
-      offset = Number(offset)
-      size = Number(size)
-      offset = offset === undefined ? 0 : offset
-      size = size === undefined ? 10 : size
-
+    let searchCondition = ''
+    if (filter.keyword) {
       // NOTE: 搜尋字如果要搜文章分類，必須是完整名稱，不區分大小寫
       // 根據搜尋字反查文章分類 id，再比對各篇文章的分類 id，而非將各篇文章的分類 id 轉換成字串來比對
-      let cid = Category.getId(keyword)
+      let cid = Category.getId(filter.keyword)
       let categoryCondition = ''
       if (cid !== null) {
         categoryCondition = `OR (category = ${cid})`
       }
-
-      const condition = `FROM articles AS a
+      searchCondition = `AND (
+                          (title LIKE '%${filter.keyword}%') OR
+                          (content LIKE '%${filter.keyword}%') OR
+                          (u.\`name\` LIKE '%${filter.keyword}%')
+                          ${categoryCondition}
+                        )`
+    }
+    const options = `FROM articles AS a
                   JOIN users AS u
                   ON a.userId = u.id
                   WHERE (a.userId = ${userId} OR
@@ -159,33 +62,53 @@ class ArticleService extends Service {
                       SELECT followTo FROM \`follows\`
                       WHERE userId = ${userId}
                     )
-                  )
-                  AND (
-                    (title LIKE '%${keyword}%') OR
-                    (content LIKE '%${keyword}%') OR
-                    (u.\`name\` LIKE '%${keyword}%')
-                    ${categoryCondition}
-                  )`
-
-      const countSql = `SELECT COUNT(*) as 'count' ${condition}`
+                  ) ${searchCondition}`
+    return options
+  }
+  getCount(userId, filter = {}) {
+    return new Promise(async (resolve, reject) => {
+      const options = this.getOptions(userId, filter)
+      const sql = `SELECT COUNT(*) as 'count' ${options}`
+      try {
+        const count = await db.sequelize.query(sql, {
+          type: QueryTypes.SELECT,
+        })
+        resolve(Number(count[0]['count']))
+      } catch (error) {
+        console.log(`讀取文章數據時發生錯誤, error: ${error}`)
+        return reject({
+          code: ErrorCode.ReadError,
+          msg: '讀取文章數據時發生錯誤',
+        })
+      }
+    })
+  }
+  // 取得文章列表
+  getList(userId, filter) {
+    return new Promise(async (resolve, reject) => {
+      const options = this.getOptions(userId, filter)
+      let offset = Number(filter.offset)
+      let limit = Number(filter.limit)
+      offset = offset === undefined ? 0 : offset
+      limit = limit === undefined ? 10 : limit
       const sql = `SELECT a.id, a.userId, u.\`name\`, title, category, content, a.updatedAt
-                  ${condition}
-                  LIMIT ${offset}, ${size}`
+                  ${options}
+                  LIMIT ${offset}, ${limit}`
 
       try {
-        const count = await db.sequelize.query(countSql, {
+        let datas = await db.sequelize.query(sql, {
           type: QueryTypes.SELECT,
         })
-        const datas = await db.sequelize.query(sql, {
-          type: QueryTypes.SELECT,
-        })
-        const results = {
-          total: Number(count[0]['count']),
-          offset: offset,
-          size: datas.length,
-          datas: datas,
+        if (filter.summary) {
+          datas.forEach((data) => {
+            let preview = data.content.substring(0, 20)
+            if (data.content.length > 20) {
+              preview += '...'
+            }
+            data.content = preview
+          })
         }
-        resolve(results)
+        return resolve(datas)
       } catch (error) {
         console.log(`讀取文章數據時發生錯誤, error: ${error}`)
         return reject({
