@@ -1,42 +1,31 @@
 const { ErrorCode } = require('../utils/codes.js')
 const Service = require('./base')
-const { Sequelize, Op, QueryTypes } = require('sequelize')
+const { QueryTypes } = require('sequelize')
 const Category = require('./categories')
 const db = require('../models')
 const Article = db.article
 
 class ArticleService extends Service {
-  // TODO: 串接資料庫
   // 新增文章
   add(article) {
     return new Promise((resolve, reject) => {
       article.category = Category.validCategory(article.category)
-      const isValid = ArticleModel.validate(article)
-      if (!isValid) {
-        reject({
-          code: ErrorCode.MissingParameters,
-          msg: `缺少必要參數, requiredFields: ${JSON.stringify(
-            ArticleModel.requiredFields
-          )}`,
+      Article.create(article)
+        .then((article) => {
+          console.log(`typeof article: ${typeof article}`)
+          article['userId'] = undefined
+          article['createdAt'] = undefined
+          return resolve(article)
         })
-      } else {
-        ArticleModel.add(article)
-          .then((article) => {
-            delete article.userId
-            delete article.createAt
-            resolve(article)
+        .catch((err) => {
+          console.error(err)
+          return reject({
+            code: ErrorCode.WriteError,
+            msg: '寫入數據時發生錯誤',
           })
-          .catch((err) => {
-            console.error(err)
-            reject({
-              code: ErrorCode.WriteError,
-              msg: '寫入數據時發生錯誤',
-            })
-          })
-      }
+        })
     })
   }
-  // TODO: JOIN USER 根據 user id 放入作者名稱
   getOptions(userId, filter = {}) {
     let searchCondition = ''
     if (filter.keyword) {
