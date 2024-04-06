@@ -5,19 +5,18 @@ class Service {
   getList(userId, filter) {
     return new Promise((resolve, reject) => {})
   }
-  getBatchDatas(userId, offset, size) {
+  getBatchDatas(userId, offset, limit, filter = {}) {
     return new Promise(async (resolve, reject) => {
       try {
         offset = Number(offset)
-        let limit = Number(size)
-        offset = offset === undefined ? 0 : offset
-        limit = limit === undefined ? 10 : limit
-        const filter = { offset, limit, summary: true }
+        limit = Number(limit)
+        filter.offset = offset === undefined ? 0 : offset
+        filter.limit = limit === undefined ? 10 : limit
         const count = await this.getCount(userId, filter)
         const datas = await this.getList(userId, filter)
         const results = {
           total: count,
-          offset: offset,
+          offset: filter.offset,
           size: datas.length,
           datas: datas,
         }

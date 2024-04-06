@@ -35,19 +35,24 @@ class ArticleService extends Service {
       }
     })
   }
+  // TODO: JOIN USER 根據 user id 放入作者名稱
   getOptions(userId, filter = {}) {
     const options = {
       where: {
-        [Op.or]: [
-          { userId: userId },
+        [Op.and]: [
           {
-            userId: {
-              [Op.in]: [
-                Sequelize.literal(
-                  `SELECT \`followTo\` FROM \`follows\` WHERE \`userId\` = ${userId}`
-                ),
-              ],
-            },
+            [Op.or]: [
+              { userId: userId },
+              {
+                userId: {
+                  [Op.in]: [
+                    Sequelize.literal(
+                      `SELECT \`followTo\` FROM \`follows\` WHERE \`userId\` = ${userId}`
+                    ),
+                  ],
+                },
+              },
+            ],
           },
         ],
       },
@@ -58,6 +63,22 @@ class ArticleService extends Service {
     }
     if (filter.offset) {
       options.offset = Number(filter.offset)
+    }
+    if (filter.keyword) {
+      options.where[Op.and].push({
+        [Op.or]: [
+          {
+            title: {
+              [Op.like]: `%${filter.keyword}%`,
+            },
+          },
+          {
+            content: {
+              [Op.like]: `%${filter.keyword}%`,
+            },
+          },
+        ],
+      })
     }
     return options
   }
@@ -108,29 +129,32 @@ class ArticleService extends Service {
   }
   // TODO: 串接資料庫
   // 根據關鍵字搜尋文章
-  getByKeyword(userId, offset, size, summary, keyword) {
+  getByKeyword(userId, offset, size, keyword) {
     return new Promise(async (resolve, reject) => {
       keyword = keyword.toUpperCase()
       // NOTE: 搜尋字如果要搜文章分類，必須是完整名稱，不區分大小寫
       // 根據搜尋字反查文章分類 id，再比對各篇文章的分類 id，而非將各篇文章的分類 id 轉換成字串來比對
-      let cid = Category.getId(keyword)
-      const articles = await this.getList(userId, summary, (article) => {
-        if (article.author.toUpperCase().includes(keyword)) {
-          return true
-        }
-        if (article.title.toUpperCase().includes(keyword)) {
-          return true
-        }
-        if (article.content.toUpperCase().includes(keyword)) {
-          return true
-        }
-        if (cid !== null && article.category === cid) {
-          return true
-        }
-        return false
-      })
-      const results = super.getBatchDatas({ datas: articles, offset, size })
-      resolve(results)
+      // let cid = Category.getId(keyword)
+      // const articles = await this.getList(userId, summary, (article) => {
+      //   if (article.author.toUpperCase().includes(keyword)) {
+      //     return true
+      //   }
+      //   if (article.title.toUpperCase().includes(keyword)) {
+      //     return true
+      //   }
+      //   if (article.content.toUpperCase().includes(keyword)) {
+      //     return true
+      //   }
+      //   if (cid !== null && article.category === cid) {
+      //     return true
+      //   }
+      //   return false
+      // })
+      // TODO: 追加 category & author
+      const filter = { keyword }
+      const articles = await this.getBatchDatas(userId, offset, size, filter)
+      // const results = super.getBatchDatas({ datas: articles, offset, size })
+      resolve(articles)
     })
   }
   // 根據文章 ID 取得文章
