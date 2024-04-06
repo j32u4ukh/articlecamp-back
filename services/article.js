@@ -170,34 +170,6 @@ class ArticleService extends Service {
       }
     })
   }
-  // TODO: 串接資料庫
-  // 根據文章 ID 刪除文章
-  delete({ id }) {
-    return new Promise((resolve, reject) => {
-      const { index, _ } = ArticleModel.get(id)
-      if (index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的文章`,
-        })
-        return
-      }
-      ArticleModel.delete(id)
-        .then(() => {
-          resolve({
-            code: ErrorCode.Ok,
-            msg: 'OK',
-          })
-        })
-        .catch((err) => {
-          console.error(err)
-          reject({
-            code: ErrorCode.DeleteError,
-            msg: '刪除數據時發生錯誤',
-          })
-        })
-    })
-  }
 }
 
 const service = new ArticleService()
