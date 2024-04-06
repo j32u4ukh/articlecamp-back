@@ -1,6 +1,6 @@
 const { ErrorCode } = require('../utils/codes.js')
 const Service = require('./base')
-const { Sequelize, Op } = require('sequelize')
+const { Sequelize, Op, QueryTypes } = require('sequelize')
 const Category = require('./categories')
 const db = require('../models')
 const Article = db.article
@@ -138,20 +138,61 @@ class ArticleService extends Service {
   // 根據關鍵字搜尋文章
   getByKeyword(userId, offset, size, keyword) {
     return new Promise(async (resolve, reject) => {
-      keyword = keyword.toUpperCase()
-
-      // TODO: 追加 author
-      const filter = { keyword }
+      offset = Number(offset)
+      size = Number(size)
+      offset = offset === undefined ? 0 : offset
+      size = size === undefined ? 10 : size
 
       // NOTE: 搜尋字如果要搜文章分類，必須是完整名稱，不區分大小寫
       // 根據搜尋字反查文章分類 id，再比對各篇文章的分類 id，而非將各篇文章的分類 id 轉換成字串來比對
       let cid = Category.getId(keyword)
+      let categoryCondition = ''
       if (cid !== null) {
-        filter.cid = cid
+        categoryCondition = `OR (category = ${cid})`
       }
-      const articles = await this.getBatchDatas(userId, offset, size, filter)
-      // const results = super.getBatchDatas({ datas: articles, offset, size })
-      resolve(articles)
+
+      const condition = `FROM articles AS a
+                  JOIN users AS u
+                  ON a.userId = u.id
+                  WHERE (a.userId = ${userId} OR
+                    a.userId IN (
+                      SELECT followTo FROM \`follows\`
+                      WHERE userId = ${userId}
+                    )
+                  )
+                  AND (
+                    (title LIKE '%${keyword}%') OR
+                    (content LIKE '%${keyword}%') OR
+                    (u.\`name\` LIKE '%${keyword}%')
+                    ${categoryCondition}
+                  )`
+
+      const countSql = `SELECT COUNT(*) as 'count' ${condition}`
+      const sql = `SELECT a.id, a.userId, u.\`name\`, title, category, content, a.updatedAt
+                  ${condition}
+                  LIMIT ${offset}, ${size}`
+
+      try {
+        const count = await db.sequelize.query(countSql, {
+          type: QueryTypes.SELECT,
+        })
+        const datas = await db.sequelize.query(sql, {
+          type: QueryTypes.SELECT,
+        })
+        const results = {
+          total: Number(count[0]['count']),
+          offset: offset,
+          size: datas.length,
+          datas: datas,
+        }
+        resolve(results)
+      } catch (error) {
+        console.log(`讀取文章數據時發生錯誤, error: ${error}`)
+        return reject({
+          code: ErrorCode.ReadError,
+          msg: '讀取文章數據時發生錯誤',
+        })
+      }
     })
   }
   // 根據文章 ID 取得文章
