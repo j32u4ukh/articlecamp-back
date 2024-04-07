@@ -1,12 +1,14 @@
-const { ErrorCode } = require('../utils/codes')
-const multer = require('multer')
-const { getImageFolder, toBase62 } = require('../utils/index')
-const upload = multer({ dest: 'public/images/' })
-const fs = require('fs')
-const path = require('path')
-const db = require('../models')
 const { Op } = require('sequelize')
+const fs = require('fs')
+const multer = require('multer')
+const path = require('path')
+
+const { ErrorCode } = require('../utils/codes')
+const { getImageFolder, toBase62 } = require('../utils/index')
+const db = require('../models')
+
 const User = db.user
+const upload = multer({ dest: 'public/images/' })
 
 class UserService {
   getAll() {

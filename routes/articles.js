@@ -1,39 +1,34 @@
-const { Router } = require('express')
-const { Article, Auth, Category, Message } = require('../services')
+const { Article, Category, Message } = require('../services')
 const { ReturnCode, ErrorCode } = require('../utils/codes')
+const { Router } = require('express')
 
 // 建立路由物件
 const router = Router()
 
 // 取得文章列表
-router.get('/', async (req, res) => {
-  try {
-    const authData = req.authData
-
-    // 從 JWT 中取得 userId
-    const userId = authData.user.id
-    const keyword = req.query.keyword
-    const offset = req.query.offset
-    const size = req.query.size
-    const filter = {}
-    if (keyword) {
-      filter.keyword = keyword
-    }
-    Article.getBatchDatas(userId, offset, size, filter).then((articles) => {
+router.get('/', (req, res) => {
+  // 從 JWT 中取得 userId
+  const userId = Number(req.authData.user.id)
+  const keyword = req.query.keyword
+  const offset = req.query.offset
+  const size = req.query.size
+  const filter = {}
+  if (keyword) {
+    filter.keyword = keyword
+  }
+  Article.getBatchDatas(userId, offset, size, filter)
+    .then((articles) => {
       res.json(articles)
     })
-  } catch (error) {
-    res.status(ErrorCode.getReturnCode(error.code)).json(error)
-  }
+    .catch((error) => {
+      res.status(ErrorCode.getReturnCode(error.code)).json(error)
+    })
 })
 
 // 新增文章
 router.post('/', (req, res) => {
-  const authData = req.authData
-
   // 從 JWT 中取得 userId
-  const userId = authData.user.id
-
+  const userId = Number(req.authData.user.id)
   const BODY = req.body
   const title = BODY.title
   if (title === undefined || title === '') {
@@ -76,10 +71,8 @@ router.get('/:id/messages', (req, res) => {
 })
 
 router.post('/:id/messages', (req, res) => {
-  const authData = req.authData
-
   // 從 JWT 中取得 userId
-  const userId = authData.user.id
+  const userId = Number(req.authData.user.id)
 
   const articleId = Number(req.params.id)
   const message = req.body
@@ -113,10 +106,8 @@ router.get('/:id', (req, res) => {
 })
 
 router.put('/:id', (req, res) => {
-  const authData = req.authData
-
   // 從 JWT 中取得 userId
-  const userId = authData.user.id
+  const userId = Number(req.authData.user.id)
   const id = Number(req.params.id)
   Article.update({
     id,

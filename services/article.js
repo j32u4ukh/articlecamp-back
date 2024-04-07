@@ -1,8 +1,10 @@
-const { ErrorCode } = require('../utils/codes.js')
-const Service = require('./base')
 const { QueryTypes } = require('sequelize')
+
+const { ErrorCode } = require('../utils/codes.js')
 const Category = require('./categories')
 const db = require('../models')
+const Service = require('./base')
+
 const Article = db.article
 
 class ArticleService extends Service {
@@ -12,7 +14,6 @@ class ArticleService extends Service {
       article.category = Category.validCategory(article.category)
       Article.create(article)
         .then((article) => {
-          console.log(`typeof article: ${typeof article}`)
           article['userId'] = undefined
           article['createdAt'] = undefined
           return resolve(article)

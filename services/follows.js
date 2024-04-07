@@ -1,6 +1,8 @@
+const { Op } = require('sequelize')
+
 const { ErrorCode } = require('../utils/codes.js')
 const db = require('../models')
-const { Op } = require('sequelize')
+
 const User = db.user
 const Follow = db.follow
 

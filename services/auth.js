@@ -1,11 +1,9 @@
-const { User } = require('./users')
-const { ErrorCode } = require('../utils/codes')
 const jwt = require('jsonwebtoken')
 
-// 實際使用中應從 config 讀取，且不應上傳 config
-const secretKey = 'ArticleCamp'
+const { ErrorCode } = require('../utils/codes')
+const { User } = require('./users')
 
-class AuthService {  
+class AuthService {
   /*
   authData: {
       "user": {
@@ -40,16 +38,21 @@ class AuthService {
   // 生成 JWT
   generateToken(user) {
     return new Promise((resolve, reject) => {
-      jwt.sign({ user }, secretKey, { expiresIn: '1h' }, (err, token) => {
-        if (err) {
-          reject({
-            code: ErrorCode.ServerInternalError,
-            msg: '生成 jwt 時發生錯誤',
-          })
-        } else {
-          resolve(token)
+      jwt.sign(
+        { user },
+        process.env.SECRET_KEY,
+        { expiresIn: '1h' },
+        (err, token) => {
+          if (err) {
+            reject({
+              code: ErrorCode.ServerInternalError,
+              msg: '生成 jwt 時發生錯誤',
+            })
+          } else {
+            resolve(token)
+          }
         }
-      })
+      )
     })
   }
   verifyToken(req) {
@@ -69,7 +72,7 @@ class AuthService {
         const token = bearer[1]
 
         // 驗證 token
-        jwt.verify(token, secretKey, (err, authData) => {
+        jwt.verify(token, process.env.SECRET_KEY, (err, authData) => {
           if (err) {
             return reject({
               code: ErrorCode.Forbidden,

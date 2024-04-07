@@ -1,5 +1,6 @@
 // 引用 Express 與 Express 路由器
-const Router = require('express')
+const { Router } = require('express')
+
 const { ReturnCode, ErrorCode } = require('../utils/codes')
 const { User, Auth } = require('../services')
 

@@ -1,6 +1,7 @@
-const db = require('../models')
 const { ErrorCode } = require('../utils/codes')
 const { toNumeric } = require('../utils')
+const db = require('../models')
+
 const Category = db.category
 
 class CategoryService {

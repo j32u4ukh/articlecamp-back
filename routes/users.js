@@ -1,16 +1,18 @@
 const { Router } = require('express')
-const { User, Follow, UserFollow } = require('../services')
-const { upload } = require('../services/users')
-const { ReturnCode, ErrorCode } = require('../utils/codes')
-const { getImageFolder } = require('../utils')
 const fs = require('fs')
 const path = require('path')
+
+const { getImageFolder } = require('../utils')
+const { ReturnCode, ErrorCode } = require('../utils/codes')
+const { upload } = require('../services/users')
+const { User, Follow, UserFollow } = require('../services')
 const authHandler = require('../middlewares/auth')
 
 // 建立路由物件
 const router = Router()
 
 router.get('/', authHandler, function (req, res) {
+  // 從 JWT 中取得 userId
   const userId = Number(req.authData.user.id)
   const offset = req.query.offset
   const size = req.query.size
@@ -20,7 +22,7 @@ router.get('/', authHandler, function (req, res) {
 })
 
 router.post('/', authHandler, function (req, res) {
-  // 當前用戶的 id
+  // 從 JWT 中取得 userId
   const userId = Number(req.authData.user.id)
   const BODY = req.body
   const targetId = BODY.userId
@@ -67,6 +69,7 @@ router.get('/images/:userId/:fileName', (req, res) => {
 })
 
 router.get('/profile', authHandler, (req, res) => {
+  // 從 JWT 中取得 userId
   const userId = Number(req.authData.user.id)
   User.get({
     id: userId,
@@ -86,6 +89,7 @@ router.patch(
   upload.single('image'),
   async (req, res) => {
     try {
+      // 從 JWT 中取得 userId
       const userId = Number(req.authData.user.id)
       const user = await User.get({ id: userId, concealing: false })
       const BODY = req.body

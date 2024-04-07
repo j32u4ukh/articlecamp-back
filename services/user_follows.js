@@ -1,7 +1,8 @@
-const Service = require('./base')
-const { ErrorCode } = require('../utils/codes')
 const { QueryTypes } = require('sequelize')
+
+const { ErrorCode } = require('../utils/codes')
 const db = require('../models')
+const Service = require('./base')
 
 class UserFollowService extends Service {
   getOptions(userId, filter = {}) {
