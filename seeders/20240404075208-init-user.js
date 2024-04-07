@@ -1,56 +1,56 @@
-'use strict';
+'use strict'
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
-    const transaction = await queryInterface.sequelize.transaction();
+  async up(queryInterface, Sequelize) {
+    const transaction = await queryInterface.sequelize.transaction()
     try {
       // uers
       await queryInterface.bulkInsert(
-        "users",
+        'users',
         [
           {
             id: 1,
-            name: "Henry",
-            email: "henry@articlecamp.com",
-            password: "password",
-            image:  "icons8-h-100.png",
+            name: 'Henry',
+            email: 'henry@articlecamp.com',
+            password: 'password',
+            image: 'icons8-h-100.png',
             createdAt: new Date(),
             updatedAt: new Date(),
           },
           {
             id: 2,
-            name: "Alex",
-            email: "alex@articlecamp.com",
-            password: "password",
-            image:  "icons8-a-100.png",
+            name: 'Alex',
+            email: 'alex@articlecamp.com',
+            password: 'password',
+            image: 'icons8-a-100.png',
             createdAt: new Date(),
             updatedAt: new Date(),
           },
           {
             id: 3,
-            name: "ShangRuey",
-            email: "shang-ruey@articlecamp.com",
-            password: "password",
-            image:  "icons8-s-100.png",
+            name: 'ShangRuey',
+            email: 'shang-ruey@articlecamp.com',
+            password: 'password',
+            image: 'icons8-s-100.png',
             createdAt: new Date(),
             updatedAt: new Date(),
           },
           {
             id: 4,
-            name: "Louis",
-            email: "louis@articlecamp.com",
-            password: "password",
-            image:  "icons8-l-100.png",
+            name: 'Louis',
+            email: 'louis@articlecamp.com',
+            password: 'password',
+            image: 'icons8-l-100.png',
             createdAt: new Date(),
             updatedAt: new Date(),
           },
           {
             id: 5,
-            name: "Peggy",
-            email: "peggy@articlecamp.com",
-            password: "password",
-            image:  "icons8-p-100.png",
+            name: 'Peggy',
+            email: 'peggy@articlecamp.com',
+            password: 'password',
+            image: 'icons8-p-100.png',
             createdAt: new Date(),
             updatedAt: new Date(),
           },
@@ -58,10 +58,10 @@ module.exports = {
         {
           transaction,
         }
-      );
+      )
       // follows
       await queryInterface.bulkInsert(
-        "follows",
+        'follows',
         [
           {
             id: 1,
@@ -100,7 +100,7 @@ module.exports = {
           },
           {
             id: 6,
-            userId: 4,
+            userId: 3,
             followTo: 4,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -116,16 +116,16 @@ module.exports = {
         {
           transaction,
         }
-      );
-      await transaction.commit();
+      )
+      await transaction.commit()
     } catch (error) {
-      console.log(`執行 seeder 失敗, error: ${error}`);
-      await transaction.rollback();
+      console.log(`執行 seeder 失敗, error: ${error}`)
+      await transaction.rollback()
     }
   },
 
-  async down (queryInterface, Sequelize) {
-    await queryInterface.bulkDelete("users", null);
-    await queryInterface.bulkDelete("follows", null);
-  }
-};
+  async down(queryInterface, Sequelize) {
+    await queryInterface.bulkDelete('users', null)
+    await queryInterface.bulkDelete('follows', null)
+  },
+}

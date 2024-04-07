@@ -46,12 +46,23 @@ npx sequelize model:generate --name user --attributes name:string,email:string,p
 
 ### Migration
 
+migration:generate 是生成 migration 檔案的指令，不僅限於生成表格時使用
+
 ```
 npx sequelize migration:generate --name migrationName
 ```
 
-* up： `npx sequelize db:migrate`
-* down： `npx sequelize db:migrate:undo`
+* up：
+
+```
+npx sequelize db:migrate
+```
+
+* down：
+
+```
+npx sequelize db:migrate:undo
+```
 
 ### Seed
 
