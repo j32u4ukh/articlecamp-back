@@ -49,9 +49,9 @@ router.post('/', authHandler, function (req, res) {
 })
 
 router.get('/images/:userId/:fileName', (req, res) => {
-  const imageFolder = getImageFolder()
   const userId = req.params.userId
   const fileName = req.params.fileName
+  const imageFolder = getImageFolder()
   const filePath = path.join(imageFolder, userId, fileName)
 
   // 檢查檔案是否存在

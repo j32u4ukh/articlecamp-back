@@ -62,7 +62,7 @@ class UserService {
   // concealing: 是否隱藏資訊
   get({ id, concealing = true }) {
     return new Promise((resolve, reject) => {
-      let attributes = ['id', 'name', 'email', 'updatedAt']
+      let attributes = ['id', 'name', 'email', 'image', 'updatedAt']
       if (!concealing) {
         attributes.push('password')
         attributes.push('createdAt')
@@ -200,11 +200,8 @@ class UserService {
         const suffix = Math.floor(Math.random() * 10000)
           .toString()
           .padStart(5, '0')
-        const fileName = path.join(
-          userId.toString(),
-          `${toBase62(`${prefix}${timestamp}${suffix}`)}.png`
-        )
-        const filePath = path.join(getImageFolder(), fileName)
+        const fileName = `${toBase62(`${prefix}${timestamp}${suffix}`)}.png`
+        const filePath = path.join(folder, fileName)
         console.log(`filePath: ${filePath}`)
 
         fs.writeFile(filePath, data, () => {
