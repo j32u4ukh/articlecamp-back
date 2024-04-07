@@ -78,32 +78,55 @@
     Authorization = Bearer {{token}}
     ```
     * Response 數據格式：
+        * status: 1: 追蹤, 0: 未追蹤
     ```
     {
-        total: 137,
-        size: xxx,
-        offset: xxx,
-        users: [
+        "total": 6,
+        "offset": 0,
+        "size": 6,
+        "datas": [
             {
-                id: 1
-                name: xxx,
-                img: 圖片的 url,
-                categories: [
-                    aaa,
-                    bbb,
-                    ccc
-                ]
+                "id": 1,
+                "name": "Henry Lee",
+                "image": "icons8-h-100.png",
+                "updatedAt": "2024-04-04T13:34:16.000Z",
+                "status": 1
             },
             {
-                id: 2
-                name: xxx,
-                img: 圖片的 url,
-                categories: [
-                    aaa,
-                    bbb,
-                    ccc
-                ]
+                "id": 3,
+                "name": "ShangRuey",
+                "image": "icons8-s-100.png",
+                "updatedAt": "2024-04-04T08:01:37.000Z",
+                "status": 1
             },
+            {
+                "id": 4,
+                "name": "Louis",
+                "image": "icons8-l-100.png",
+                "updatedAt": "2024-04-04T08:01:37.000Z",
+                "status": 0
+            },
+            {
+                "id": 5,
+                "name": "Peggy",
+                "image": "icons8-p-100.png",
+                "updatedAt": "2024-04-04T08:01:37.000Z",
+                "status": 0
+            },
+            {
+                "id": 6,
+                "name": "King",
+                "image": null,
+                "updatedAt": "2024-04-04T13:30:33.000Z",
+                "status": 0
+            },
+            {
+                "id": 7,
+                "name": "King2",
+                "image": null,
+                "updatedAt": "2024-04-04T10:27:39.000Z",
+                "status": 0
+            }
         ]
     }
     ```

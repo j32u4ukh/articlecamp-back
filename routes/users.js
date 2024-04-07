@@ -10,15 +10,8 @@ const authHandler = require('../middlewares/auth')
 // 建立路由物件
 const router = Router()
 
-router.get('/', function (req, res) {
-  const token = req.headers.token
-  if (token === undefined || token === '') {
-    return res.status(ReturnCode.BadRequest).json({
-      code: ErrorCode.MissingParameters,
-      msg: '缺少必要參數 token',
-    })
-  }
-  const userId = Number(token)
+router.get('/', authHandler, function (req, res) {
+  const userId = Number(req.authData.user.id)
   const offset = req.query.offset
   const size = req.query.size
   UserFollow.getBatchDatas(userId, offset, size).then((results) => {
@@ -26,14 +19,9 @@ router.get('/', function (req, res) {
   })
 })
 
-router.post('/', function (req, res) {
-  const token = req.headers.token
-  if (token === undefined) {
-    return res.status(ReturnCode.BadRequest).json({
-      code: ErrorCode.MissingParameters,
-      msg: '缺少必要參數 token',
-    })
-  }
+router.post('/', authHandler, function (req, res) {
+  // 當前用戶的 id
+  const userId = Number(req.authData.user.id)
   const BODY = req.body
   const targetId = BODY.userId
   if (targetId === undefined || targetId === '') {
@@ -49,8 +37,6 @@ router.post('/', function (req, res) {
       msg: 'follow 為必要參數',
     })
   }
-  // 當前用戶的 id
-  const userId = Number(token)
   // 欲追隨用戶的 id
   const followTo = Number(targetId)
   Follow.setRelationShip({ userId, followTo, follow })
@@ -94,33 +80,31 @@ router.get('/profile', authHandler, (req, res) => {
 })
 
 // 設定的 image 表示提交的表單中，圖片上傳的欄位名稱是 image (要配合表單傳送過來時，檔案對應的 name)
-router.patch('/profile', authHandler, upload.single('image'), async (req, res) => {
-  // const token = req.headers.token
-  // if (token === undefined) {
-  //   return res.status(ReturnCode.BadRequest).json({
-  //     code: ErrorCode.MissingParameters,
-  //     msg: '缺少必要參數 token',
-  //   })
-  // }
-  try {
-    const userId = Number(req.authData.user.id)
-    const user = await User.get({ id: userId, concealing: false })
-    const BODY = req.body
-    const { file } = req
-    user.name = BODY.name ?? user.name
-    user.email = BODY.email ?? user.email
+router.patch(
+  '/profile',
+  authHandler,
+  upload.single('image'),
+  async (req, res) => {
+    try {
+      const userId = Number(req.authData.user.id)
+      const user = await User.get({ id: userId, concealing: false })
+      const BODY = req.body
+      const { file } = req
+      user.name = BODY.name ?? user.name
+      user.email = BODY.email ?? user.email
 
-    if (file) {
-      const image = await User.uploadImage(userId, file.path)
-      user.image = image
+      if (file) {
+        const image = await User.uploadImage(userId, file.path)
+        user.image = image
+      }
+
+      const result = await User.update({ id: userId, user })
+      res.json(result)
+    } catch (error) {
+      console.error(error)
+      res.status(ErrorCode.getReturnCode(error.code)).json(error)
     }
-
-    const result = await User.update({ id: userId, user })
-    res.json(result)
-  } catch (error) {
-    console.error(error)
-    res.status(ErrorCode.getReturnCode(error.code)).json(error)
   }
-})
+)
 
 module.exports = router
