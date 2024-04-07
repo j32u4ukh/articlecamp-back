@@ -1,107 +1,87 @@
-const { Follow: FollowModel } = require('../models/index')
+const { Op } = require('sequelize')
+
 const { ErrorCode } = require('../utils/codes.js')
-const User = require('../models/users')
+const db = require('../models')
+
+const User = db.user
+const Follow = db.follow
 
 class FollowService {
-  getList(userId) {
-    return new Promise((resolve, reject) => {
-      resolve(FollowModel.getList(userId))
-    })
-  }
   setRelationShip({ userId, followTo, follow }) {
-    return new Promise((resolve, reject) => {
-      if (!this.isUserExists(userId)) {
-        return reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${userId} 的用戶`,
+    return new Promise(async (resolve, reject) => {
+      try {
+        // 檢查用戶 userId & followTo 是否存在
+        const users = await User.findAll({
+          attributes: ['id'],
+          where: {
+            id: {
+              [Op.in]: [userId, followTo],
+            },
+          },
+          raw: true,
         })
-      }
+        const nUser = users.length
+        switch (nUser) {
+          case 0:
+            return reject({
+              code: ErrorCode.InvalidParameters,
+              msg: `用戶(${userId} & ${followTo}) 皆不存在`,
+            })
+          case 1:
+            let notFound
+            if (users[0].id === userId) {
+              notFound = followTo
+            } else {
+              notFound = userId
+            }
+            return reject({
+              code: ErrorCode.InvalidParameters,
+              msg: `用戶(${notFound}) 不存在`,
+            })
+        }
 
-      if (!this.isUserExists(followTo)) {
-        return reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${followTo} 的用戶`,
+        // 有 userId & followTo 的數據則修改狀態，沒有的話則新增數據
+        const relationship = await Follow.findOne({
+          where: {
+            userId,
+            followTo,
+          },
+          raw: true,
         })
-      }
 
-      let promise
-      if (follow) {
-        promise = this.add({ userId, followTo })
-      } else {
-        promise = this.remove({ userId, followTo })
-      }
+        if (relationship) {
+          await Follow.update(
+            { status: follow },
+            {
+              where: {
+                id: relationship.id,
+              },
+            }
+          )
+        } else {
+          await Follow.create({
+            userId,
+            followTo,
+            status: follow,
+          })
+        }
 
-      promise
-        .then((result) => {
-          resolve(result)
+        return resolve({
+          msg: 'OK',
         })
-        .catch((error) => {
-          reject(error)
-        })
+      } catch (error) {
+        if (error.code === undefined || error.msg === undefined) {
+          console.log(`更新關係數據時發生錯誤, error: ${error}`)
+          error = {
+            code: ErrorCode.UpdateError,
+            msg: '更新關係數據時發生錯誤',
+          }
+        }
+        return reject(error)
+      }
     })
-  }
-  add({ userId, followTo }) {
-    return new Promise((resolve, reject) => {
-      const index = FollowModel.getRelationship(userId, followTo)
-
-      // 若已經是追隨關係
-      if (index !== -1) {
-        return reject({
-          code: ErrorCode.Conflict,
-          msg: '已經是追隨關係',
-        })
-      }
-
-      FollowModel.add({ userId, followTo })
-        .then(() => {
-          return resolve({
-            code: ErrorCode.Ok,
-          })
-        })
-        .catch((error) => {
-          console.error(error)
-          return reject({
-            code: ErrorCode.WriteError,
-            msg: '寫入數據時發生錯誤',
-          })
-        })
-    })
-  }
-  remove({ userId, followTo }) {
-    return new Promise((resolve, reject) => {
-      // 取得追隨關係數據
-      const index = FollowModel.getRelationship(userId, followTo)
-
-      // 若不是追隨關係
-      if (index === -1) {
-        return reject({
-          code: ErrorCode.NotRelationship,
-          msg: '不是追隨關係',
-        })
-      }
-
-      // 移除追隨關係
-      FollowModel.delete(index)
-        .then(() => {
-          return resolve({
-            code: ErrorCode.Ok,
-          })
-        })
-        .catch((error) => {
-          console.error(error)
-          return reject({
-            code: ErrorCode.DeleteError,
-            msg: '刪除數據時發生錯誤',
-          })
-        })
-    })
-  }
-  // 檢查用戶是否都存在
-  isUserExists(userId) {
-    const user = User.get(userId)
-    return user.index !== -1
   }
 }
 
-const Follow = new FollowService()
-module.exports = Follow
+const service = new FollowService()
+module.exports = service

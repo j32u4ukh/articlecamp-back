@@ -1,79 +1,81 @@
-const { Message: MessageModel, Article: ArticleModel } = require('../models')
+const { QueryTypes } = require('sequelize')
+
 const { ErrorCode } = require('../utils/codes.js')
+const Article = require('./article')
+const db = require('../models')
 const Service = require('./base')
 
+const Message = db.message
+
 class MessageService extends Service {
-  getBatchDatas(articleId, offset, size, filterFunc) {
+  getOptions(articleId) {
+    const options = `FROM messages AS m
+                     JOIN users AS u
+                     ON u.id = m.userId
+                     WHERE m.articleId = ${articleId}`
+    return options
+  }
+  getCount(articleId, filter = {}) {
+    return new Promise(async (resolve, reject) => {
+      const options = this.getOptions(articleId, filter)
+      const sql = `SELECT COUNT(*) as 'count' ${options}`
+      try {
+        const count = await db.sequelize.query(sql, {
+          type: QueryTypes.SELECT,
+        })
+        resolve(Number(count[0]['count']))
+      } catch (error) {
+        console.log(`讀取留言數據時發生錯誤, error: ${error}`)
+        return reject({
+          code: ErrorCode.ReadError,
+          msg: '讀取留言數據時發生錯誤',
+        })
+      }
+    })
+  }
+  getList(articleId, filter = {}) {
+    return new Promise(async (resolve, reject) => {
+      const options = this.getOptions(articleId)
+      const sql = `SELECT m.id, m.articleId, u.name, m.content, m.updatedAt
+                  ${options}
+                  LIMIT ${filter.offset}, ${filter.limit}`
+
+      try {
+        let datas = await db.sequelize.query(sql, {
+          type: QueryTypes.SELECT,
+        })
+        return resolve(datas)
+      } catch (error) {
+        console.log(`讀取留言數據時發生錯誤, error: ${error}`)
+        return reject({
+          code: ErrorCode.ReadError,
+          msg: '讀取留言數據時發生錯誤',
+        })
+      }
+    })
+  }
+  // 新增留言
+  add(userId, articleId, message) {
     return new Promise(async (resolve, reject) => {
       try {
-        const messages = await this.getList(articleId, filterFunc)
-        const results = super.getBatchDatas({ datas: messages, offset, size })
-        resolve(results)
+        await Article.get({ id: articleId })
+        message.userId = userId
+        message.articleId = articleId
+        message = await Message.create(message)
+        return resolve(message)
       } catch (error) {
-        reject(error)
+        if (error.code === undefined || error.msg === undefined) {
+          console.log(`更新數據時發生錯誤, error: ${error}`)
+          error = {
+            code: ErrorCode.UpdateError,
+            msg: '更新數據時發生錯誤',
+          }
+        }
+        return reject(error)
       }
-    })
-  }
-  getList(articleId, filterFunc) {
-    return new Promise((resolve, reject) => {
-      const article = ArticleModel.get(articleId)
-      if (article.index === -1) {
-        return reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的文章`,
-        })
-      }
-      const messages = MessageModel.getList(articleId, filterFunc)
-      resolve(messages)
-    })
-  }
-  get({ id }) {
-    return new Promise((resolve, reject) => {
-      const result = MessageModel.get(id)
-      if (result.index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的留言`,
-        })
-      }
-      resolve(result.data)
-    })
-  }
-  add(userId, articleId, message) {
-    return new Promise((resolve, reject) => {
-      // 檢查 articleId 是否存在
-      const article = ArticleModel.get(articleId)
-      if (article.index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${articleId} 的文章`,
-        })
-        return
-      }
-
-      message.userId = userId
-      message.articleId = articleId
-      const isValid = MessageModel.validate(message)
-      if (!isValid) {
-        reject({
-          code: ErrorCode.MissingParameters,
-          msg: '缺少必要參數',
-        })
-        return
-      }
-      MessageModel.add(message)
-        .then((result) => {
-          resolve(result)
-        })
-        .catch((error) => {
-          reject({
-            code: ErrorCode.WriteError,
-            msg: error,
-          })
-        })
     })
   }
 }
 
-const Message = new MessageService()
-module.exports = Message
+const service = new MessageService()
+module.exports = service

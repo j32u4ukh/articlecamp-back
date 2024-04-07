@@ -1,5 +1,6 @@
 // 引用 Express 與 Express 路由器
-const Router = require('express')
+const { Router } = require('express')
+
 const { ReturnCode, ErrorCode } = require('../utils/codes')
 const { User, Auth } = require('../services')
 
@@ -75,6 +76,17 @@ v2.post('/login', (req, res) => {
     .catch((error) => {
       res.status(ErrorCode.getReturnCode(error.code)).json(error)
     })
+})
+
+v2.get('/test', (req, res) => {
+  const { Article } = require('../services')
+  console.log('/test')
+  Article.getCount(1)
+    .then((count) => {
+      console.log(`count: ${count}`)
+      res.json({ count })
+    })
+    .catch((error) => [res.status(500).json(error)])
 })
 
 // 將 API-v2 相關路由加入根路由

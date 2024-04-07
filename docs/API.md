@@ -75,35 +75,58 @@
         * size(可選): 返回數據筆數，預設為 10。
     * Request header: 使用登入時給的 token 作為辨識用戶的代碼
     ```
-    token = xxx
+    Authorization = Bearer {{token}}
     ```
     * Response 數據格式：
+        * status: 1: 追蹤, 0: 未追蹤
     ```
     {
-        total: 137,
-        size: xxx,
-        offset: xxx,
-        users: [
+        "total": 6,
+        "offset": 0,
+        "size": 6,
+        "datas": [
             {
-                id: 1
-                name: xxx,
-                img: 圖片的 url,
-                categories: [
-                    aaa,
-                    bbb,
-                    ccc
-                ]
+                "id": 1,
+                "name": "Henry Lee",
+                "image": "icons8-h-100.png",
+                "updatedAt": "2024-04-04T13:34:16.000Z",
+                "status": 1
             },
             {
-                id: 2
-                name: xxx,
-                img: 圖片的 url,
-                categories: [
-                    aaa,
-                    bbb,
-                    ccc
-                ]
+                "id": 3,
+                "name": "ShangRuey",
+                "image": "icons8-s-100.png",
+                "updatedAt": "2024-04-04T08:01:37.000Z",
+                "status": 1
             },
+            {
+                "id": 4,
+                "name": "Louis",
+                "image": "icons8-l-100.png",
+                "updatedAt": "2024-04-04T08:01:37.000Z",
+                "status": 0
+            },
+            {
+                "id": 5,
+                "name": "Peggy",
+                "image": "icons8-p-100.png",
+                "updatedAt": "2024-04-04T08:01:37.000Z",
+                "status": 0
+            },
+            {
+                "id": 6,
+                "name": "King",
+                "image": null,
+                "updatedAt": "2024-04-04T13:30:33.000Z",
+                "status": 0
+            },
+            {
+                "id": 7,
+                "name": "King2",
+                "image": null,
+                "updatedAt": "2024-04-04T10:27:39.000Z",
+                "status": 0
+            }
         ]
     }
     ```
@@ -113,13 +136,14 @@
     * Request 數據格式：
     ```
     {
-        targetId: 20,
+        // 追蹤對象的 ID
+        userId: 20,
         follow: true,
     }
     ```
     * Request header: 使用登入時給的 token 作為辨識用戶的代碼
     ```
-    token = xxx
+    Authorization = Bearer {{token}}
     ```
     * Response 數據格式：
     ```
@@ -136,7 +160,7 @@
     * Request 數據格式：[bytes array]
     * Request header: 使用登入時給的 token 作為辨識用戶的代碼
     ```
-    token = xxx
+    Authorization = Bearer {{token}}
     ```
     * Response 數據格式：     
     ```
@@ -149,7 +173,7 @@
     * 取得用戶資訊，包含用戶 ID、頭像圖片(圖片的 url)、用戶名稱、信箱。
     * Request header: 使用登入時給的 token 作為辨識用戶的代碼
     ```
-    token = xxx
+    Authorization = Bearer {{token}}
     ```
     * Response 數據格式：
     ```
@@ -171,7 +195,7 @@
         * keyword(可選): 根據關鍵字來過濾文章列表 ex: /articles?keyword=xxx
     * Request header: 使用登入時給的 token 作為辨識用戶的代碼
     ```
-    token = xxx
+    Authorization = Bearer {{token}}
     ```
     * Response 數據格式：
         - total: 數據總數量
@@ -223,7 +247,7 @@
     ```
     * Request header: 使用登入時給的 token 作為辨識用戶的代碼
     ```
-    token = xxx
+    Authorization = Bearer {{token}}
     ```
     * Response 數據格式：
     ```
@@ -238,6 +262,10 @@
 
 * GET /v2/articles/categories
     * 返回文章分類列表
+    * Request header: 使用登入時給的 token 作為辨識用戶的代碼
+    ```
+    Authorization = Bearer {{token}}
+    ```
     * Response 數據格式：
     ```
     [
@@ -256,7 +284,7 @@
     * 根據 id 返回單篇文章
     * Request header: 使用登入時給的 token 作為辨識用戶的代碼
     ```
-    token = xxx
+    Authorization = Bearer {{token}}
     ```
     * Response 數據格式：
     ```
@@ -295,7 +323,7 @@
     ```
     * Request header: 使用登入時給的 token 作為辨識用戶的代碼
     ```
-    token = xxx
+    Authorization = Bearer {{token}}
     ```
     * Response 數據格式：
     ```
@@ -315,7 +343,7 @@
         * size(可選): 返回數據筆數，預設為 10。
     * Request header: 使用登入時給的 token 作為辨識用戶的代碼
     ```
-    token = xxx
+    Authorization = Bearer {{token}}
     ```
     * Response 數據格式：
     ```
@@ -352,7 +380,7 @@
     ```
     * Request header: 使用登入時給的 token 作為辨識用戶的代碼
     ```
-    token = xxx
+    Authorization = Bearer {{token}}
     ```
     * Response 數據格式：
     ```

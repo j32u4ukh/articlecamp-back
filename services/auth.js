@@ -1,11 +1,21 @@
-const { User } = require('./users')
-const { ErrorCode } = require('../utils/codes')
 const jwt = require('jsonwebtoken')
 
-// 實際使用中應從 config 讀取，且不應上傳 config
-const secretKey = 'ArticleCamp'
+const { ErrorCode } = require('../utils/codes')
+const { User } = require('./users')
 
 class AuthService {
+  /*
+  authData: {
+      "user": {
+          "id": 1,
+          "name": "Henry",
+          "email": "henry@articlecamp.com",
+          "updateAt": 1705819929
+      },
+      "iat": 1711380760,
+      "exp": 1711384360
+  }
+  */
   constructor() {
     this.tokens = {}
   }
@@ -13,6 +23,7 @@ class AuthService {
     return new Promise(async (resolve, reject) => {
       try {
         const user = await User.login({ email, password })
+        // user.id = 99
         const token = await this.generateToken(user)
         this.tokens[user.id] = token
         resolve(token)
@@ -27,16 +38,21 @@ class AuthService {
   // 生成 JWT
   generateToken(user) {
     return new Promise((resolve, reject) => {
-      jwt.sign({ user }, secretKey, { expiresIn: '1h' }, (err, token) => {
-        if (err) {
-          reject({
-            code: ErrorCode.ServerInternalError,
-            msg: '生成 jwt 時發生錯誤',
-          })
-        } else {
-          resolve(token)
+      jwt.sign(
+        { user },
+        process.env.SECRET_KEY,
+        { expiresIn: '1h' },
+        (err, token) => {
+          if (err) {
+            reject({
+              code: ErrorCode.ServerInternalError,
+              msg: '生成 jwt 時發生錯誤',
+            })
+          } else {
+            resolve(token)
+          }
         }
-      })
+      )
     })
   }
   verifyToken(req) {
@@ -56,25 +72,13 @@ class AuthService {
         const token = bearer[1]
 
         // 驗證 token
-        jwt.verify(token, secretKey, (err, authData) => {
+        jwt.verify(token, process.env.SECRET_KEY, (err, authData) => {
           if (err) {
             return reject({
               code: ErrorCode.Forbidden,
               msg: 'jwt 驗證失敗',
             })
           } else {
-            /*
-            authData: {
-                "user": {
-                    "id": 1,
-                    "name": "Henry",
-                    "email": "henry@articlecamp.com",
-                    "updateAt": 1705819929
-                },
-                "iat": 1711380760,
-                "exp": 1711384360
-            }
-            */
             return resolve(authData)
           }
         })

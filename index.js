@@ -1,7 +1,10 @@
-const express = require('express')
+require('dotenv').config()
+
 const cors = require('cors')
+const express = require('express')
+
 const app = express()
-const PORT = 3000
+const PORT = 5000
 
 // 使用 cors 中間件
 app.use(cors())

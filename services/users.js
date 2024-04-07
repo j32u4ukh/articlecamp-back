@@ -1,149 +1,180 @@
-const { User: UserModel } = require('../models/index')
-const { ErrorCode } = require('../utils/codes')
-const multer = require('multer')
-const { getImageFolder, toBase62 } = require('../utils/index')
-const upload = multer({ dest: 'public/images/' })
+const { Op } = require('sequelize')
 const fs = require('fs')
+const multer = require('multer')
 const path = require('path')
-const jwt = require('jsonwebtoken')
 
-// 實際使用中應從 config 讀取，且不應上傳 config
-const secretKey = 'ArticleCamp'
+const { ErrorCode } = require('../utils/codes')
+const { getImageFolder, toBase62 } = require('../utils/index')
+const db = require('../models')
+
+const User = db.user
+const upload = multer({ dest: 'public/images/' })
 
 class UserService {
   getAll() {
     return new Promise((resolve, reject) => {
-      resolve(UserModel.getList())
+      User.findAll({
+        attributes: ['id', 'name', 'email', 'updatedAt'],
+        // where: { userId },
+        // offset: (page - 1) * limit,
+        // limit,
+        raw: true,
+      })
+        .then((users) => {
+          resolve(users)
+        })
+        .catch((error) => {
+          console.log(`讀取用戶列表時發生錯誤, error: ${error}`)
+          return reject({
+            code: ErrorCode.ReadError,
+            msg: `讀取用戶列表時發生錯誤`,
+          })
+        })
     })
   }
   // concealing: 是否隱藏資訊
-  getList(userId, concealing, filterFunc) {
+  getOthers({ userId, concealing }) {
     return new Promise((resolve, reject) => {
-      let users = UserModel.getList((user) => {
-        if (filterFunc) {
-          let cond = filterFunc(user)
-          if (cond === false) {
-            return false
-          }
-        }
-        return user.id !== userId
-      })
-      if (concealing) {
-        users = users.map((user) => {
-          delete user.password
-          return user
-        })
+      let attributes = ['id', 'name', 'email', 'updatedAt']
+      if (!concealing) {
+        attributes.push('password')
+        attributes.push('createdAt')
       }
-      resolve(users)
+      User.findAll({
+        attributes: attributes,
+        where: {
+          id: {
+            [Op.ne]: userId,
+          },
+        },
+        raw: true,
+      })
+        .then((users) => {
+          resolve(users)
+        })
+        .catch((error) => {
+          console.log(`讀取用戶列表時發生錯誤, error: ${error}`)
+          return reject({
+            code: ErrorCode.ReadError,
+            msg: `讀取用戶列表時發生錯誤`,
+          })
+        })
     })
   }
   // concealing: 是否隱藏資訊
   get({ id, concealing = true }) {
     return new Promise((resolve, reject) => {
-      let { index, data } = UserModel.get(id)
-      if (index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的用戶`,
-        })
+      let attributes = ['id', 'name', 'email', 'image', 'updatedAt']
+      if (!concealing) {
+        attributes.push('password')
+        attributes.push('createdAt')
       }
-      if (concealing) {
-        delete data.password
-        delete data.createAt
-      }
-      resolve(data)
-    })
-  }
-  login({ email, password }) {
-    return new Promise(async (resolve, reject) => {
-      const user = UserModel.getByEmail(email)
-      if (user === undefined) {
-        return reject({
-          code: ErrorCode.NotFound,
-          msg: `找不到此信箱`,
-        })
-      }
-      if (password !== user.password) {
-        return reject({
-          code: ErrorCode.Unauthorized,
-          msg: `密碼不正確`,
-        })
-      }
-
-      delete user.password
-      delete user.image
-      delete user.createAt
-      resolve(user)
-    })
-  }
-  add(user) {
-    return new Promise((resolve, reject) => {
-      const isValid = UserModel.validate(user, UserModel.requiredFields)
-      if (!isValid) {
-        return reject({
-          code: ErrorCode.MissingParameters,
-          msg: `缺少必要參數, requiredFields: ${JSON.stringify(
-            UserModel.requiredFields
-          )}`,
-        })
-      }
-      const temp = UserModel.getByEmail(user.email)
-      if (temp !== undefined) {
-        return reject({
-          code: ErrorCode.Conflict,
-          msg: `此信箱(${user.email})已註冊過`,
-        })
-      }
-      UserModel.add(user)
-        .then((result) => {
-          resolve(result)
+      User.findByPk(id, {
+        attributes: attributes,
+        raw: true,
+      })
+        .then((user) => {
+          if (user === null) {
+            return reject({
+              code: ErrorCode.NotFound,
+              msg: `沒有 id 為 ${id} 的用戶`,
+            })
+          }
+          return resolve(user)
         })
         .catch((error) => {
-          console.error(error)
-          reject({
-            code: ErrorCode.WriteError,
-            msg: '寫入數據時發生錯誤',
+          console.log(`讀取用戶數據時發生錯誤, error: ${error}`)
+          return reject({
+            code: ErrorCode.ReadError,
+            msg: `讀取用戶數據時發生錯誤`,
           })
         })
+    })
+  }
+  // 用戶登入，驗證成功後返回 JWT
+  login({ email, password }) {
+    return new Promise((resolve, reject) => {
+      User.findOne({
+        attributes: ['id', 'name', 'email', 'password'],
+        where: { email },
+        raw: true,
+      })
+        .then((user) => {
+          if (!user) {
+            return reject({
+              code: ErrorCode.NotFound,
+              msg: `找不到 email 為 ${email} 的用戶`,
+            })
+          }
+          if (password !== user.password) {
+            return reject({
+              code: ErrorCode.Unauthorized,
+              msg: `密碼不正確`,
+            })
+          }
+          delete user.password
+          return resolve(user)
+        })
+        .catch((error) => {
+          console.log(`讀取用戶數據時發生錯誤, error: ${error}`)
+          return reject({
+            code: ErrorCode.ReadError,
+            msg: `讀取用戶數據時發生錯誤`,
+          })
+        })
+    })
+  }
+  // 新增用戶
+  add(user) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const count = await User.count({
+          where: { email: user.email },
+        })
+        if (count > 0) {
+          return reject({
+            code: ErrorCode.Conflict,
+            msg: `此信箱(${user.email})已註冊過`,
+          })
+        }
+        const result = User.create({
+          name: user.name,
+          email: user.email,
+          password: user.password,
+        })
+        resolve(result)
+      } catch (error) {
+        console.error(error)
+        return reject({
+          code: ErrorCode.WriteError,
+          msg: '新增玩家時發生錯誤',
+        })
+      }
     })
   }
   // 根據 id 更新用戶數據
   update({ id, user }) {
     return new Promise((resolve, reject) => {
-      const { index, data } = UserModel.get(id)
-      if (index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的用戶`,
+      User.update(user, {
+        where: {
+          id,
+        },
+      })
+        .then(() => {
+          return resolve({
+            msg: 'OK',
+          })
         })
-        return
-      }
-      const isValid = UserModel.validate(user, UserModel.requiredFields)
-      if (!isValid) {
-        reject({
-          code: ErrorCode.MissingParameters,
-          msg: `缺少必要參數, requiredFields: ${JSON.stringify(
-            UserModel.requiredFields
-          )}`,
-        })
-        return
-      }
-      user.id = id
-      user.createAt = data.createAt
-      UserModel.update(index, user)
-        .then((result) => {
-          resolve(result)
-        })
-        .catch((err) => {
-          console.error(err)
-          reject({
+        .catch((error) => {
+          console.log(`讀取用戶數據時發生錯誤, error: ${error}`)
+          return reject({
             code: ErrorCode.UpdateError,
-            msg: '更新數據時發生錯誤',
+            msg: `更新用戶數據時發生錯誤`,
           })
         })
     })
   }
-  // TODO: 每個用戶有自己的資料夾，當中則是專屬各個使用者的圖片資源
+  // 每個用戶有自己的資料夾，當中則是專屬各個使用者的圖片資源
   // 經過 upload.single() 這個 middleware 後，檔案的部分就會被放到 req.file 屬性裡，而其他非檔案的欄位仍然會保留在 req.body 屬性裡
   uploadImage(userId, image) {
     return new Promise((resolve, reject) => {
@@ -171,11 +202,8 @@ class UserService {
         const suffix = Math.floor(Math.random() * 10000)
           .toString()
           .padStart(5, '0')
-        const fileName = path.join(
-          userId.toString(),
-          `${toBase62(`${prefix}${timestamp}${suffix}`)}.png`
-        )
-        const filePath = path.join(getImageFolder(), fileName)
+        const fileName = `${toBase62(`${prefix}${timestamp}${suffix}`)}.png`
+        const filePath = path.join(folder, fileName)
         console.log(`filePath: ${filePath}`)
 
         fs.writeFile(filePath, data, () => {
@@ -192,52 +220,7 @@ class UserService {
       })
     })
   }
-  // 生成 JWT
-  generateToken(user) {
-    return new Promise((resolve, reject) => {
-      jwt.sign({ user }, secretKey, { expiresIn: '1h' }, (err, token) => {
-        if (err) {
-          reject({
-            code: ErrorCode.ServerInternalError,
-            msg: '生成 jwt 時發生錯誤',
-          })
-        } else {
-          resolve(token)
-        }
-      })
-    })
-  }
-  verifyToken(req) {
-    return new Promise((resolve, reject) => {
-      // 獲取 Authorization 頭
-      const bearerHeader = req.headers['authorization']
-
-      // 檢查是否有 token
-      if (bearerHeader === undefined || bearerHeader === '') {
-        return reject({
-          code: ErrorCode.MissingParameters,
-          msg: 'Header 中缺少 jwt',
-        })
-      } else {
-        // 分割 token
-        const bearer = bearerHeader.split(' ')
-        const token = bearer[1]
-
-        // 驗證 token
-        jwt.verify(token, secretKey, (err, authData) => {
-          if (err) {
-            return reject({
-              code: ErrorCode.Forbidden,
-              msg: 'jwt 驗證失敗',
-            })
-          } else {
-            return resolve(authData)
-          }
-        })
-      }
-    })
-  }
 }
 
-const User = new UserService()
-module.exports = { User, upload }
+const Service = new UserService()
+module.exports = { User: Service, upload }

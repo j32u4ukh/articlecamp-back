@@ -1,213 +1,177 @@
-const { Article: ArticleModel, Category } = require('../models')
-const Follow = require('./follows.js')
+const { QueryTypes } = require('sequelize')
+
 const { ErrorCode } = require('../utils/codes.js')
+const Category = require('./categories')
+const db = require('../models')
 const Service = require('./base')
-const { User } = require('./users')
+
+const Article = db.article
 
 class ArticleService extends Service {
   // 新增文章
   add(article) {
     return new Promise((resolve, reject) => {
       article.category = Category.validCategory(article.category)
-      const isValid = ArticleModel.validate(article)
-      if (!isValid) {
-        reject({
-          code: ErrorCode.MissingParameters,
-          msg: `缺少必要參數, requiredFields: ${JSON.stringify(
-            ArticleModel.requiredFields
-          )}`,
+      Article.create(article)
+        .then((article) => {
+          article['userId'] = undefined
+          article['createdAt'] = undefined
+          return resolve(article)
         })
-      } else {
-        ArticleModel.add(article)
-          .then((article) => {
-            delete article.userId
-            delete article.createAt
-            resolve(article)
+        .catch((err) => {
+          console.error(err)
+          return reject({
+            code: ErrorCode.WriteError,
+            msg: '寫入數據時發生錯誤',
           })
-          .catch((err) => {
-            console.error(err)
-            reject({
-              code: ErrorCode.WriteError,
-              msg: '寫入數據時發生錯誤',
-            })
-          })
-      }
+        })
     })
   }
-  // 取得批次的文章列表
-  getBatchDatas(userId, offset, size, summary, filterFunc) {
+  getOptions(userId, filter = {}) {
+    let searchCondition = ''
+    if (filter.keyword) {
+      // NOTE: 搜尋字如果要搜文章分類，必須是完整名稱，不區分大小寫
+      // 根據搜尋字反查文章分類 id，再比對各篇文章的分類 id，而非將各篇文章的分類 id 轉換成字串來比對
+      let cid = Category.getId(filter.keyword)
+      let categoryCondition = ''
+      if (cid !== null) {
+        categoryCondition = `OR (category = ${cid})`
+      }
+      searchCondition = `AND (
+                          (title LIKE '%${filter.keyword}%') OR
+                          (content LIKE '%${filter.keyword}%') OR
+                          (u.\`name\` LIKE '%${filter.keyword}%')
+                          ${categoryCondition}
+                        )`
+    }
+    const options = `FROM articles AS a
+                  JOIN users AS u
+                  ON a.userId = u.id
+                  WHERE (a.userId = ${userId} OR
+                    a.userId IN (
+                      SELECT followTo FROM \`follows\`
+                      WHERE userId = ${userId}
+                    )
+                  ) ${searchCondition}`
+    return options
+  }
+  getCount(userId, filter = {}) {
     return new Promise(async (resolve, reject) => {
+      const options = this.getOptions(userId, filter)
+      const sql = `SELECT COUNT(*) as 'count' ${options}`
       try {
-        const articles = await this.getList(userId, summary, filterFunc)
-        const results = super.getBatchDatas({ datas: articles, offset, size })
-        resolve(results)
+        const count = await db.sequelize.query(sql, {
+          type: QueryTypes.SELECT,
+        })
+        resolve(Number(count[0]['count']))
       } catch (error) {
-        reject(error)
+        console.log(`讀取文章數據時發生錯誤, error: ${error}`)
+        return reject({
+          code: ErrorCode.ReadError,
+          msg: '讀取文章數據時發生錯誤',
+        })
       }
     })
   }
   // 取得文章列表
-  getList(userId, summary, filterFunc) {
+  getList(userId, filter) {
     return new Promise(async (resolve, reject) => {
-      // 取得用戶 ID 以及其追蹤對象的 ID 列表
-      const ids = [userId]
-      const follows = await Follow.getList(userId)
-      follows.forEach((follow) => {
-        ids.push(follow.followTo)
-      })
+      const options = this.getOptions(userId, filter)
+      let offset = Number(filter.offset)
+      let limit = Number(filter.limit)
+      offset = offset === undefined ? 0 : offset
+      limit = limit === undefined ? 10 : limit
+      const sql = `SELECT a.id, a.userId, u.\`name\`, title, category, content, a.updatedAt
+                  ${options}
+                  LIMIT ${offset}, ${limit}`
 
-      // 根據 ID 列表返回文章列表
-      let articles = ArticleModel.getList((article) => {
-        if (filterFunc) {
-          let cond = filterFunc(article)
-          if (cond === false) {
-            return false
-          }
-        }
-        return (
-          // 只取得 ID 列表中的作者的文章
-          ids.findIndex((id) => {
-            return id === article.userId
-          }) !== -1
-        )
-      })
-
-      // 取得用戶列表，並將用戶名稱帶入文章列表數據
-      const users = await User.getAll()
-      articles = articles.map((article) => {
-        const user = users.find((user) => {
-          return user.id === article.userId
+      try {
+        let datas = await db.sequelize.query(sql, {
+          type: QueryTypes.SELECT,
         })
-        if (user) {
-          article.author = user.name
+        if (filter.summary) {
+          datas.forEach((data) => {
+            let preview = data.content.substring(0, 20)
+            if (data.content.length > 20) {
+              preview += '...'
+            }
+            data.content = preview
+          })
         }
-        // 是否返回摘要即可
-        if (summary) {
-          let preview = article.content.substring(0, 20)
-          if (article.content.length > 20) {
-            preview += '...'
-          }
-          article.content = preview
-        }
-        return article
-      })
-      resolve(articles)
-    })
-  }
-  // 根據關鍵字搜尋文章
-  getByKeyword(userId, offset, size, summary, keyword) {
-    return new Promise(async (resolve, reject) => {
-      keyword = keyword.toUpperCase()
-      // NOTE: 搜尋字如果要搜文章分類，必須是完整名稱，不區分大小寫
-      // 根據搜尋字反查文章分類 id，再比對各篇文章的分類 id，而非將各篇文章的分類 id 轉換成字串來比對
-      let cid = Category.getId(keyword)
-      const articles = await this.getList(userId, summary, (article) => {
-        if (article.author.toUpperCase().includes(keyword)) {
-          return true
-        }
-        if (article.title.toUpperCase().includes(keyword)) {
-          return true
-        }
-        if (article.content.toUpperCase().includes(keyword)) {
-          return true
-        }
-        if (cid !== null && article.category === cid) {
-          return true
-        }
-        return false
-      })
-      const results = super.getBatchDatas({ datas: articles, offset, size })
-      resolve(results)
+        return resolve(datas)
+      } catch (error) {
+        console.log(`讀取文章數據時發生錯誤, error: ${error}`)
+        return reject({
+          code: ErrorCode.ReadError,
+          msg: '讀取文章數據時發生錯誤',
+        })
+      }
     })
   }
   // 根據文章 ID 取得文章
   get({ id }) {
     return new Promise((resolve, reject) => {
-      const result = ArticleModel.get(id)
-      if (result.index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的文章`,
+      Article.findByPk(id, {
+        raw: true,
+      })
+        .then((article) => {
+          if (!article) {
+            return reject({
+              code: ErrorCode.NotFound,
+              msg: `沒有 id 為 ${id} 的文章`,
+            })
+          }
+          return resolve(article)
         })
-        return
-      }
-      resolve(result.data)
+        .catch((error) => {
+          console.log(`讀取文章數據時發生錯誤, error: ${error}`)
+          return reject({
+            code: ErrorCode.ReadError,
+            msg: '讀取文章數據時發生錯誤',
+          })
+        })
     })
   }
   // 根據文章 ID 更新文章
   update({ id, userId, article }) {
-    return new Promise((resolve, reject) => {
-      article.category = Category.validCategory(article.category)
-      const { index, data } = ArticleModel.get(id)
-      if (index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的文章`,
-        })
-        return
-      }
+    return new Promise(async (resolve, reject) => {
+      try {
+        const data = await this.get({ id })
 
-      // 檢查請求是否來自原作者
-      if (userId !== data.userId) {
-        return reject({
-          code: ErrorCode.Unauthorized,
-          msg: '當前用戶沒有權限修改這篇文章',
-        })
-      }
-
-      article.id = id
-      article.userId = data.userId
-      article.createAt = data.createAt
-      const isValid = ArticleModel.validate(article)
-      if (!isValid) {
-        return reject({
-          code: ErrorCode.MissingParameters,
-          msg: '缺少必要參數',
-        })
-      }
-
-      // 更新文章數據
-      ArticleModel.update(article)
-        .then((result) => {
-          resolve(result)
-        })
-        .catch((err) => {
-          console.error(err)
-          reject({
-            code: ErrorCode.UpdateError,
-            msg: '更新數據時發生錯誤',
+        // 檢查請求是否來自原作者
+        if (userId !== data.userId) {
+          return reject({
+            code: ErrorCode.Unauthorized,
+            msg: '當前用戶沒有權限修改這篇文章',
           })
-        })
-    })
-  }
-  // 根據文章 ID 刪除文章
-  delete({ id }) {
-    return new Promise((resolve, reject) => {
-      const { index, _ } = ArticleModel.get(id)
-      if (index === -1) {
-        reject({
-          code: ErrorCode.NotFound,
-          msg: `沒有 id 為 ${id} 的文章`,
-        })
-        return
-      }
-      ArticleModel.delete(id)
-        .then(() => {
-          resolve({
-            code: ErrorCode.Ok,
+        }
+        article.id = id
+        article.userId = data.userId
+        article.createAt = data.createAt
+
+        const result = await Article.update(article, { where: { id, userId } })
+        if (Number(result[0]) > 0) {
+          return resolve({
             msg: 'OK',
           })
-        })
-        .catch((err) => {
-          console.error(err)
-          reject({
-            code: ErrorCode.DeleteError,
-            msg: '刪除數據時發生錯誤',
+        } else {
+          return resolve({
+            msg: 'Nothing changed',
           })
-        })
+        }
+      } catch (error) {
+        if (error.code === undefined || error.msg === undefined) {
+          console.log(`更新數據時發生錯誤, error: ${error}`)
+          error = {
+            code: ErrorCode.UpdateError,
+            msg: '更新數據時發生錯誤',
+          }
+        }
+        return reject(error)
+      }
     })
   }
 }
 
-const Article = new ArticleService()
-module.exports = Article
+const service = new ArticleService()
+module.exports = service
