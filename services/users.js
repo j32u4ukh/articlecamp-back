@@ -95,7 +95,7 @@ class UserService {
   login({ email, password }) {
     return new Promise((resolve, reject) => {
       User.findOne({
-        attributes: ['id', 'name', 'email', 'password'],
+        attributes: ['id', 'name', 'email', 'password', 'image'],
         where: { email },
         raw: true,
       })
@@ -161,9 +161,9 @@ class UserService {
         },
       })
         .then(() => {
-          return resolve({
-            msg: 'OK',
-          })
+          user.password = undefined
+          user.createdAt = undefined
+          return resolve(user)
         })
         .catch((error) => {
           console.log(`讀取用戶數據時發生錯誤, error: ${error}`)
