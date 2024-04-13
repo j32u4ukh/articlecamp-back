@@ -81,7 +81,7 @@ class ArticleService extends Service {
       let limit = Number(filter.limit)
       offset = offset === undefined ? 0 : offset
       limit = limit === undefined ? 10 : limit
-      const sql = `SELECT a.id, a.userId, u.\`name\`, title, category, content, a.updatedAt
+      const sql = `SELECT a.id, a.userId, u.\`name\`, u.image, title, category, content, a.updatedAt
                   ${options}
                   LIMIT ${offset}, ${limit}`
 
@@ -98,6 +98,7 @@ class ArticleService extends Service {
             data.content = preview
           })
         }
+        console.log(`data: ${JSON.stringify(datas[0])}`)
         return resolve(datas)
       } catch (error) {
         console.log(`讀取文章數據時發生錯誤, error: ${error}`)
@@ -110,26 +111,33 @@ class ArticleService extends Service {
   }
   // 根據文章 ID 取得文章
   get({ id }) {
-    return new Promise((resolve, reject) => {
-      Article.findByPk(id, {
-        raw: true,
-      })
-        .then((article) => {
-          if (!article) {
-            return reject({
-              code: ErrorCode.NotFound,
-              msg: `沒有 id 為 ${id} 的文章`,
-            })
-          }
-          return resolve(article)
+    return new Promise(async (resolve, reject) => {
+      const sql = `SELECT a.id, a.userId, u.\`name\`, u.image, title, category, content, a.updatedAt
+                  FROM articles AS a
+                  JOIN users AS u
+                  ON a.userId = u.id
+                  WHERE a.id = ${id}`
+
+      try {
+        const data = await db.sequelize.query(sql, {
+          type: QueryTypes.SELECT,
         })
-        .catch((error) => {
-          console.log(`讀取文章數據時發生錯誤, error: ${error}`)
+        console.log(`data: ${JSON.stringify(data)}`)
+        if (data.length === 0) {
           return reject({
-            code: ErrorCode.ReadError,
-            msg: '讀取文章數據時發生錯誤',
+            code: ErrorCode.NotFound,
+            msg: `沒有 id 為 ${id} 的文章`,
           })
+        } else {
+          return resolve(data[0])
+        }
+      } catch (error) {
+        console.log(`讀取文章數據時發生錯誤, error: ${error}`)
+        return reject({
+          code: ErrorCode.ReadError,
+          msg: '讀取文章數據時發生錯誤',
         })
+      }
     })
   }
   // 根據文章 ID 更新文章
