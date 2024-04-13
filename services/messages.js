@@ -36,7 +36,7 @@ class MessageService extends Service {
   getList(articleId, filter = {}) {
     return new Promise(async (resolve, reject) => {
       const options = this.getOptions(articleId)
-      const sql = `SELECT m.id, m.articleId, u.name, m.content, m.updatedAt
+      const sql = `SELECT m.id, m.articleId, u.id AS 'userId', u.name, u.image, m.content, m.updatedAt
                   ${options}
                   LIMIT ${filter.offset}, ${filter.limit}`
 
