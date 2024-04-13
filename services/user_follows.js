@@ -1,43 +1,55 @@
-const Follow = require('./follows')
-const { User } = require('./users')
-const { selectByOffsetSize } = require('../utils')
+const { QueryTypes } = require('sequelize')
+
+const { ErrorCode } = require('../utils/codes')
+const db = require('../models')
 const Service = require('./base')
 
 class UserFollowService extends Service {
-  getBatchDatas(userId, offset, size) {
+  getOptions(userId, filter = {}) {
+    const options = `FROM users AS u
+                     LEFT JOIN \`follows\` AS f
+                     ON u.id = f.followTo AND f.userId = ${userId}
+                     WHERE u.id != ${userId}`
+    return options
+  }
+  getCount(userId, filter = {}) {
     return new Promise(async (resolve, reject) => {
-      const users = await this.getList(userId)
-      const results = super.getBatchDatas({ datas: users, offset, size })
-      resolve(results)
+      const options = this.getOptions(userId, filter)
+      const sql = `SELECT COUNT(u.id) as 'count' ${options}`
+      try {
+        const count = await db.sequelize.query(sql, {
+          type: QueryTypes.SELECT,
+        })
+        resolve(Number(count[0]['count']))
+      } catch (error) {
+        console.log(`讀取追隨數據時發生錯誤, error: ${error}`)
+        return reject({
+          code: ErrorCode.ReadError,
+          msg: '讀取追隨數據時發生錯誤',
+        })
+      }
     })
   }
-  getList(userId) {
+  getList(userId, filter) {
     return new Promise(async (resolve, reject) => {
-      let users = await User.getList(userId, true)
-      users = users.filter((user) => user.id !== userId)
-      const relationship = await Follow.getList(userId)
-      // 根據追隨關係，進行排序後，再考慮 offset 和 size
-      const len = relationship.length
-      let relation, index
-      for (let i = 0; i < len; i++) {
-        relation = relationship[i]
-        index = users.findIndex((user) => user.id === relation.followTo)
-        if (index !== -1) {
-          users[index].followed = true
-        }
+      const options = this.getOptions(userId, filter)
+      const sql = `SELECT u.id, u.name, u.image, u.updatedAt, COALESCE(f.status, FALSE) AS status
+                  ${options}
+                  ORDER BY status DESC
+                  LIMIT ${filter.offset}, ${filter.limit}`
+
+      try {
+        let datas = await db.sequelize.query(sql, {
+          type: QueryTypes.SELECT,
+        })
+        return resolve(datas)
+      } catch (error) {
+        console.log(`讀取追隨數據時發生錯誤, error: ${error}`)
+        return reject({
+          code: ErrorCode.ReadError,
+          msg: '讀取追隨數據時發生錯誤',
+        })
       }
-      users.sort((a, b) => {
-        if (a.followed === undefined && b.followed === undefined) {
-          return 0
-        } else if (a.followed && b.followed === undefined) {
-          return -1
-        } else if (a.followed === undefined && b.followed) {
-          return 1
-        } else {
-          return 0
-        }
-      })
-      resolve(users)
     })
   }
 }
