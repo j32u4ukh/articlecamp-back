@@ -95,7 +95,7 @@ router.patch(
       const BODY = req.body
       const { file } = req
       user.name = BODY.name ?? user.name
-      user.email = BODY.email ?? user.email
+      // user.email = BODY.email ?? user.email
 
       if (file) {
         const image = await User.uploadImage(userId, file.path)
