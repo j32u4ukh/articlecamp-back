@@ -14,9 +14,14 @@ const router = Router()
 router.get('/', authHandler, function (req, res) {
   // 從 JWT 中取得 userId
   const userId = Number(req.authData.user.id)
+  const search = req.query.search
   const offset = req.query.offset
   const size = req.query.size
-  UserFollow.getBatchDatas(userId, offset, size).then((results) => {
+  const filter = {}
+  if (search) {
+    filter.search = search
+  }
+  UserFollow.getBatchDatas(userId, offset, size, filter).then((results) => {
     res.json(results)
   })
 })
@@ -95,7 +100,7 @@ router.patch(
       const BODY = req.body
       const { file } = req
       user.name = BODY.name ?? user.name
-      user.email = BODY.email ?? user.email
+      // user.email = BODY.email ?? user.email
 
       if (file) {
         const image = await User.uploadImage(userId, file.path)

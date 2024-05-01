@@ -6,10 +6,14 @@ const Service = require('./base')
 
 class UserFollowService extends Service {
   getOptions(userId, filter = {}) {
+    let searchCondition = ''
+    if (filter.search) {
+      searchCondition = `AND u.name LIKE '%${filter.search}%'`
+    }
     const options = `FROM users AS u
                      LEFT JOIN \`follows\` AS f
                      ON u.id = f.followTo AND f.userId = ${userId}
-                     WHERE u.id != ${userId}`
+                     WHERE u.id != ${userId} ${searchCondition}`
     return options
   }
   getCount(userId, filter = {}) {
